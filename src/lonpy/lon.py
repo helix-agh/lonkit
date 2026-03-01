@@ -17,21 +17,22 @@ class LONConfig:
 
     Attributes:
         fitness_aggregation: Strategy for handling nodes with multiple fitness values:
-            - "min": Use minimum fitness
-            - "max": Use maximum fitness
-            - "mean": Use average fitness
-            - "first": Use first occurrence
-            - "strict": Raise error if duplicates are detected
-            Default: "min".
+            - `"min"`: Use minimum fitness
+            - `"max"`: Use maximum fitness
+            - `"mean"`: Use average fitness
+            - `"first"`: Use first occurrence
+            - `"strict"`: Raise error if duplicates are detected
+            Default: `"min"`.
         warn_on_duplicates: Whether to emit a warning when duplicate nodes detected. Default: `True`
         max_fitness_deviation: If set, raise error if fitness deviation exceeds this threshold. Default: `None` (no threshold).
             Useful for detecting data quality issues.
+        eq_atol: Tolerance for considering fitness values as equal. Default: `1e-12`.
     """
 
     fitness_aggregation: Literal["min", "max", "mean", "first", "strict"] = "min"
     warn_on_duplicates: bool = True
     max_fitness_deviation: float | None = None
-    eq_atol: float | None = None
+    eq_atol: float = DEFAULT_ATOL
 
 
 @dataclass
@@ -43,15 +44,16 @@ class LON:
     represent transitions between them discovered during basin-hopping search.
 
     Attributes:
-        graph: The underlying igraph Graph object.
-        best_fitness: The best (minimum) fitness value found.
-        final_run_values: Dictionary mapping run number to final fitness value.
+        graph: The underlying `igraph` Graph object. Default: empty directed `ig.Graph`.
+        best_fitness: The best (minimum) fitness value found. Default: `None`.
+        final_run_values: `Series` mapping run number to final fitness value. Default: `None`.
+        eq_atol: Tolerance for considering fitness values as equal. Default: `1e-12`.
     """
 
     graph: ig.Graph = field(default_factory=lambda: ig.Graph(directed=True))
     best_fitness: float | None = None
     final_run_values: pd.Series | None = None
-    eq_atol: float | None = None
+    eq_atol: float = DEFAULT_ATOL
 
     @classmethod
     def from_trace_data(
@@ -63,21 +65,21 @@ class LON:
         Create a LON from trace data.
 
         Args:
-            trace: DataFrame with columns [run, fit1, node1, fit2, node2] where:
+            trace: DataFrame with columns `[run, fit1, node1, fit2, node2]` where:
                 - run: integer run number
-                - fit1: integer fitness of source node (scaled)
+                - fit1: fitness value of source node
                 - node1: string hash of source node
-                - fit2: integer fitness of target node (scaled)
+                - fit2: fitness value of target node
                 - node2: string hash of target node
-            config: Optional configuration for LON construction. If None, uses default
-                configuration with minimum fitness aggregation.
+            config: Optional configuration for LON construction. If `None`, uses default
+                configuration with minimum fitness aggregation. Default: `None`.
 
         Returns:
-            LON instance with constructed graph.
+            `LON` instance with constructed graph.
 
         Raises:
-            ValueError: If fitness_aggregation is "strict" and duplicates are detected,
-                or if max_fitness_deviation threshold is exceeded.
+            ValueError: If fitness_aggregation is `"strict"` and duplicates are detected,
+                or if `max_fitness_deviation` threshold is exceeded.
         """
         config = config or LONConfig()
         trace = trace.copy()
@@ -188,13 +190,11 @@ class LON:
         """Check if two fitness values are equal within tolerance."""
         if f1 is None or f2 is None:
             return f1 == f2
-        atol = self.eq_atol if self.eq_atol is not None else DEFAULT_ATOL
-        return np.allclose(f1, f2, atol=atol, rtol=0.0)
+        return np.allclose(f1, f2, atol=self.eq_atol, rtol=0.0)
 
     def _isclose_series(self, f1: pd.Series, f2: float):
-        """Check element-wise if a Series of fitness values are equal to a scalar within tolerance."""
-        atol = self.eq_atol if self.eq_atol is not None else DEFAULT_ATOL
-        return np.isclose(f1, f2, atol=atol, rtol=0.0)
+        """Check element-wise if a `Series` of fitness values are equal to a scalar within tolerance."""
+        return np.isclose(f1, f2, atol=self.eq_atol, rtol=0.0)
 
     def get_sinks(self) -> list[int]:
         """Get indices of sink nodes (nodes with no outgoing edges)."""
@@ -206,8 +206,8 @@ class LON:
         Compute LON network metrics.
 
         Args:
-            known_best: Known global optimum value. If None, uses the best
-                fitness found in the network.
+            known_best: Known global optimum value. If `None`, uses the best
+                fitness found in the network. Default: `None`.
 
         Returns:
             Dictionary containing:
@@ -283,8 +283,8 @@ class LON:
         Compute performance metrics based on sampling runs.
 
         Args:
-            known_best: Known global optimum value. If None, uses the best
-                fitness found in the network.
+            known_best: Known global optimum value. If `None`, uses the best
+                fitness found in the network. Default: `None`.
 
         Returns:
             Dictionary containing:
@@ -316,8 +316,8 @@ class LON:
         (topology-based) and performance metrics (run-based).
 
         Args:
-            known_best: Known global optimum value. If None, uses the best
-                fitness found in the network.
+            known_best: Known global optimum value. If `None`, uses the best
+                fitness found in the network. Default: `None`.
 
         Returns:
             Dictionary containing all network and performance metrics:
@@ -350,12 +350,13 @@ class CMLON:
         graph: The underlying igraph Graph object.
         best_fitness: The best (minimum) fitness value.
         source_lon: Reference to the original LON (optional).
+        eq_atol: Tolerance for considering fitness values as equal. Default: `1e-12`.
     """
 
     graph: ig.Graph = field(default_factory=lambda: ig.Graph(directed=True))
     best_fitness: float | None = None
     source_lon: LON | None = None
-    eq_atol: float | None = None
+    eq_atol: float = DEFAULT_ATOL
 
     @classmethod
     def from_lon(cls, lon: LON) -> "CMLON":
@@ -434,8 +435,7 @@ class CMLON:
         """Check if two fitness values are equal within tolerance."""
         if f1 is None or f2 is None:
             return f1 == f2
-        atol = self.eq_atol if self.eq_atol is not None else DEFAULT_ATOL
-        return np.allclose(f1, f2, atol=atol, rtol=0.0)
+        return np.allclose(f1, f2, atol=self.eq_atol, rtol=0.0)
 
     @property
     def n_vertices(self) -> int:
@@ -481,8 +481,8 @@ class CMLON:
         Compute CMLON network metrics.
 
         Args:
-            known_best: Known global optimum value. If None, uses the best
-                fitness found in the network.
+            known_best: Known global optimum value. If `None`, uses the best
+                fitness found in the network. Default: `None`.
 
         Returns:
             Dictionary containing:
@@ -573,8 +573,8 @@ class CMLON:
         it doesn't have its own sampling run data.
 
         Args:
-            known_best: Known global optimum value. If None, uses the best
-                fitness found in the network.
+            known_best: Known global optimum value. If `None`, uses the best
+                fitness found in the network. Default: `None`.
 
         Returns:
             Dictionary containing performance metrics from source LON, or
@@ -594,8 +594,8 @@ class CMLON:
         metrics and performance metrics from the source LON.
 
         Args:
-            known_best: Known global optimum value. If None, uses the best
-                fitness found in the network.
+            known_best: Known global optimum value. If `None`, uses the best
+                fitness found in the network. Default: `None`.
 
         Returns:
             Dictionary containing all network and performance metrics:
@@ -620,7 +620,7 @@ def _contract_vertices(
         graph: Input graph.
         membership: Component membership for each vertex.
         vertex_attr_comb: How to combine vertex attributes. Supported methods:
-            "first", "sum", "min", "max", "ignore".
+            `"first"`, `"sum"`, `"min"`, `"max"`, `"ignore"`.
 
     Returns:
         New graph with contracted vertices.
@@ -698,7 +698,7 @@ def _validate_duplicate_nodes(
 
     Raises:
         ValueError: If max_fitness_deviation threshold is exceeded, or if
-            fitness_aggregation is "strict".
+            fitness_aggregation is `"strict"`.
     """
     max_deviation = (node_agg["Fitness_max"] - node_agg["Fitness_min"]).max()
 

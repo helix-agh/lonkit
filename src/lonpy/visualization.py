@@ -55,12 +55,12 @@ class LONVisualizer:
         Initialize visualizer.
 
         Args:
-            min_edge_width: Minimum edge width.
-            max_edge_width: Maximum edge width.
-            min_node_size: Minimum node size.
-            max_node_size: Maximum node size.
-            arrow_size: Arrow size for directed edges.
-            alpha: Alpha value for colors (0-255).
+            min_edge_width: Minimum edge width. Default: `1.0`.
+            max_edge_width: Maximum edge width. Default: `3.0`.
+            min_node_size: Minimum node size. Default: `2.0`.
+            max_node_size: Maximum node size. Default: `8.0`.
+            arrow_size: Arrow size for directed edges. Default: `0.2`.
+            alpha: Alpha value for colors (0-255). Default: `255`.
         """
         self.min_edge_width = min_edge_width
         self.max_edge_width = max_edge_width
@@ -166,10 +166,10 @@ class LONVisualizer:
 
         Args:
             lon_or_cmlon: LON or CMLON instance.
-            output_path: Path to save PNG (optional).
-            figsize: Figure size in inches.
-            dpi: DPI for output.
-            seed: Random seed for reproducible layout.
+            output_path: Path to save PNG. If `None`, only returns figure without saving. Default: `None`.
+            figsize: Figure size in inches. Default: `(8, 8)`.
+            dpi: DPI for output. Default: `100`.
+            seed: Random seed for reproducible layout. Default: `None`.
 
         Returns:
             matplotlib Figure.
@@ -247,10 +247,10 @@ class LONVisualizer:
 
         Args:
             lon_or_cmlon: LON or CMLON instance.
-            output_path: Path to save PNG (optional).
-            width: Image width in pixels.
-            height: Image height in pixels.
-            seed: Random seed for reproducible layout.
+            output_path: Path to save PNG. If `None`, only returns figure without saving. Default: `None`.
+            width: Image width in pixels. Default: `800`.
+            height: Image height in pixels. Default: `800`.
+            seed: Random seed for reproducible layout. Default: `None`.
 
         Returns:
             plotly Figure.
@@ -370,13 +370,13 @@ class LONVisualizer:
         Args:
             lon_or_cmlon: LON or CMLON instance.
             output_path: Path to save GIF.
-            duration: Animation duration in seconds.
-            fps: Frames per second.
-            width: Image width in pixels.
-            height: Image height in pixels.
-            seed: Random seed for reproducible layout.
-            loop: GIF loop count (0 = infinite).
-            disposal: GIF disposal method. Use 2 (restore to background) to avoid frame overlap.
+            duration: Animation duration in seconds. Default: `3.0`.
+            fps: Frames per second. Default: `10`.
+            width: Image width in pixels. Default: `800`.
+            height: Image height in pixels. Default: `800`.
+            seed: Random seed for reproducible layout. Default: `None`.
+            loop: GIF loop count (`0` = infinite). Default: `0`.
+            disposal: GIF disposal method. Use `2` (restore to background) to avoid frame overlap. Default: `2`.
         """
         output_path = _ensure_parent_dir(output_path)
         graph = lon_or_cmlon.graph
@@ -507,17 +507,17 @@ class LONVisualizer:
         Create all visualizations for a LON.
 
         Generates a complete set of visualizations:
-        - lon.png: 2D LON plot
-        - cmlon.png: 2D CMLON plot
-        - 3D_lon.png: 3D LON plot
-        - 3D_cmlon.png: 3D CMLON plot
-        - lon.gif: Rotating 3D LON animation
-        - cmlon.gif: Rotating 3D CMLON animation
+        - `lon.png`: 2D LON plot
+        - `cmlon.png`: 2D CMLON plot
+        - `3D_lon.png`: 3D LON plot
+        - `3D_cmlon.png`: 3D CMLON plot
+        - `lon.gif`: Rotating 3D LON animation
+        - `cmlon.gif`: Rotating 3D CMLON animation
 
         Args:
             lon: LON instance.
             output_folder: Output directory path.
-            seed: Random seed for reproducible layouts.
+            seed: Random seed for reproducible layouts. Default: `None`.
 
         Returns:
             Dictionary mapping output type to file path.

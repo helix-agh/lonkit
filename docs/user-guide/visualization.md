@@ -90,11 +90,15 @@ viz.create_rotation_gif(
 
 ### GIF Parameters
 
-| Parameter  | Default | Description                 |
-| ---------- | ------- | --------------------------- |
-| `duration` | 3.0     | Animation length in seconds |
-| `fps`      | 10      | Frames per second           |
-| `loop`     | 0       | Loop count (0 = infinite)   |
+| Parameter  | Default | Description                                                           |
+| ---------- | ------- | --------------------------------------------------------------------- |
+| `duration` | 3.0     | Animation length in seconds                                           |
+| `fps`      | 10      | Frames per second                                                     |
+| `width`    | 800     | Image width in pixels                                                 |
+| `height`   | 800     | Image height in pixels                                                |
+| `seed`     | None    | Random seed for reproducible layout                                   |
+| `loop`     | 0       | Loop count (0 = infinite)                                             |
+| `disposal` | 2       | GIF disposal method (2 = restore to background, avoids frame overlap) |
 
 ## Generate All Visualizations
 
