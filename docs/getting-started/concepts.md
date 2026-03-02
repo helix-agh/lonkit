@@ -34,7 +34,7 @@ Local optima are important because:
 
 1. **Local minimization**: Find nearest local optimum
 2. **Perturbation**: Random step to escape the current basin
-3. **Acceptance**: Move to new optimum if it is equal or better 
+3. **Acceptance**: Move to new optimum if it is equal or better
 
 This creates a trajectory through the space of local optima:
 
