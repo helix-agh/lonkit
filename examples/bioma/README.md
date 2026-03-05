@@ -17,7 +17,7 @@ Defined in [`problems.py`](problems.py):
 | Function | Domain | Description |
 |---|---|---|
 | Ackley 4 | [-35, 35] | Multi-modal, non-separable |
-| Griewank | [-200, 200] | Many local optima with regular structure |
+| Griewank | [-600, 600] | Many local optima with regular structure |
 | Schwefel 2.26 | [-500, 500] | Deceptive global structure |
 | Spread Spectrum Radar Polly Phase | [0, 2&pi;] | Real-world radar design problem |
 | SSC Ruspini | [0, 200] | Sum-of-squares clustering on Ruspini dataset |

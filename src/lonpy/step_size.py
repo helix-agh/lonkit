@@ -32,7 +32,7 @@ class StepSizeEstimatorConfig:
     coordinate_precision: int | None = 4
     minimizer_method: str = "L-BFGS-B"
     minimizer_options: dict = field(
-        default_factory=lambda: {"ftol": 1e-07, "gtol": 0, "maxiter": 15000}
+        default_factory=lambda: {"ftol": 1e-07, "gtol": 1e-05, "maxiter": 15000}
     )
     bounded: bool = True
     seed: int | None = None
@@ -82,6 +82,7 @@ class StepSizeEstimator:
             minimizer_method=self.config.minimizer_method,
             minimizer_options=self.config.minimizer_options,
             step_mode="percentage",
+            seed=self.config.seed,
         )
         return BasinHoppingSampler(sampler_config)
 
@@ -91,6 +92,7 @@ class StepSizeEstimator:
         domain_array: np.ndarray,
         step_size: float,
         sampler: BasinHoppingSampler,
+        rng: np.random.Generator,
     ) -> float:
         """Compute the average escape rate for a given step size."""
         bounds_array = domain_array if self.config.bounded else None
@@ -99,7 +101,7 @@ class StepSizeEstimator:
         escape_rates = []
 
         for _ in range(self.config.n_samples):
-            x0 = np.random.uniform(domain_array[:, 0], domain_array[:, 1])
+            x0 = rng.uniform(domain_array[:, 0], domain_array[:, 1])
             res = minimize(
                 func,
                 x0,
@@ -143,11 +145,9 @@ class StepSizeEstimator:
         Returns:
             StepSizeResult with the estimated step size, achieved escape rate, and error.
         """
-        if self.config.seed is not None:
-            np.random.seed(self.config.seed)
-
         domain_array = np.array(domain)
         sampler = self._make_sampler()
+        rng = np.random.default_rng(self.config.seed)
 
         step = 0.1
         increment = 0.1
@@ -159,7 +159,7 @@ class StepSizeEstimator:
 
         for _ in range(self.config.search_precision):
             while step <= 1.0 + 1e-12:
-                rate = self._compute_escape_rate(func, domain_array, step, sampler)
+                rate = self._compute_escape_rate(func, domain_array, step, sampler, rng)
                 last_tested = (step, rate)
 
                 if rate < target:
