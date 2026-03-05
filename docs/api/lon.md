@@ -12,7 +12,6 @@
         - vertex_fitness
         - vertex_count
         - get_sinks
-        - get_global_optima_indices
         - compute_metrics
         - to_cmlon
 
@@ -30,3 +29,13 @@
         - get_global_sinks
         - get_local_sinks
         - compute_metrics
+
+::: lonpy.lon.LONConfig
+    options:
+      show_root_heading: true
+      show_source: true
+      members:
+        - fitness_aggregation
+        - warn_on_duplicates
+        - max_fitness_deviation
+        - eq_atol

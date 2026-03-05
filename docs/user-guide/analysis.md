@@ -7,9 +7,10 @@ This guide explains how to analyze LONs and interpret the computed metrics.
 Both LON and CMLON provide a `compute_metrics()` method:
 
 ```python
-from lonpy import compute_lon
+from lonpy import compute_lon, BasinHoppingSamplerConfig
 
-lon = compute_lon(func, dim=2, lower_bound=-5, upper_bound=5, n_runs=30)
+lon = compute_lon(func, dim=2, lower_bound=-5, upper_bound=5,
+                  config=BasinHoppingSamplerConfig(n_runs=30))
 
 # LON metrics
 lon_metrics = lon.compute_metrics()
@@ -36,7 +37,7 @@ print(f"Found {n_optima} local optima")
 
 - Higher values indicate more multimodal landscapes
 - Compare across functions to assess relative complexity
-- Depends on sampling thoroughness and hash_digits precision
+- Depends on sampling thoroughness and coordinate_precision
 
 ### n_funnels
 
@@ -83,20 +84,84 @@ print(f"Neutrality: {neutral:.1%}")
 - High % = Many plateaus or degenerate optima
 - Affects how CMLON compression works
 
-### strength
+### global_strength
 
-**Proportion of incoming edge weight to global optima.**
+**Proportion of global optima incoming strength to total incoming strength of all nodes.**
 
 ```python
-strength = lon_metrics['strength']
-print(f"Global strength: {strength:.1%}")
+global_strength = lon_metrics['global_strength']
+print(f"Global strength: {global_strength:.1%}")
 ```
 
 **Interpretation:**
 
 - 100% = All transitions flow toward global optimum
-- Low % = Most flow diverted to suboptimal sinks
+- Low % = Most flow diverted to suboptimal nodes
 - Key indicator of optimization difficulty
+
+### sink_strength
+
+**Proportion of global sinks incoming strength to incoming strength of all sink nodes.**
+
+```python
+sink_strength = lon_metrics['sink_strength']
+print(f"Sink strength: {sink_strength:.1%}")
+```
+
+**Interpretation:**
+
+- 100% = All sink-directed flow reaches global sinks
+- Low % = Most sink flow goes to local (suboptimal) sinks
+- Focuses specifically on competition between sinks
+
+## Performance Metrics
+
+In addition to network topology metrics, `compute_metrics()` returns performance metrics based on the sampling runs:
+
+### success
+
+**Proportion of sampling runs that reached the global optimum.**
+
+```python
+success = lon_metrics['success']
+print(f"Success rate: {success:.1%}")
+```
+
+**Interpretation:**
+
+- 100% = Every run found the global optimum
+- Low % = Many runs got trapped in local optima
+- Useful for comparing algorithm effectiveness across landscapes
+
+### deviation
+
+**Mean absolute deviation from the global optimum across all runs.**
+
+```python
+deviation = lon_metrics['deviation']
+print(f"Mean deviation: {deviation:.6f}")
+```
+
+**Interpretation:**
+
+- 0.0 = All runs converged to the global optimum
+- Higher values indicate runs ending far from the global optimum
+- Complements `success` by measuring "how far off" unsuccessful runs are
+
+### Separating Network and Performance Metrics
+
+You can also compute them separately:
+
+```python
+# Only network topology metrics (n_optima, n_funnels, etc.)
+network_metrics = lon.compute_network_metrics()
+
+# Only performance metrics (success, deviation)
+performance_metrics = lon.compute_performance_metrics()
+
+# Both combined (equivalent to compute_metrics())
+all_metrics = lon.compute_metrics()
+```
 
 ## CMLON-Specific Metrics
 
@@ -165,10 +230,6 @@ names = lon.vertex_names
 sinks = lon.get_sinks()
 print(f"Sink indices: {sinks}")
 
-# Global optima
-global_idx = lon.get_global_optima_indices()
-print(f"Global optimum indices: {global_idx}")
-
 # For CMLON: separate global and local sinks
 global_sinks = cmlon.get_global_sinks()
 local_sinks = cmlon.get_local_sinks()
@@ -233,7 +294,7 @@ def classify_landscape(lon):
         return "Easy: Single-funnel landscape"
     elif cmlon_metrics['global_funnel_proportion'] > 0.8:
         return "Moderate: Multiple funnels but well-connected"
-    elif metrics['strength'] > 0.5:
+    elif metrics['global_strength'] > 0.5:
         return "Moderate: Good flow to global optimum"
     else:
         return "Hard: Multiple competing funnels"
@@ -245,7 +306,7 @@ print(classify_landscape(lon))
 
 ```python
 import numpy as np
-from lonpy import compute_lon
+from lonpy import compute_lon, BasinHoppingSamplerConfig
 
 def sphere(x):
     return np.sum(x**2)
@@ -264,7 +325,8 @@ functions = {
 
 results = {}
 for name, (func, lb, ub) in functions.items():
-    lon = compute_lon(func, dim=2, lower_bound=lb, upper_bound=ub, n_runs=30, seed=42)
+    lon = compute_lon(func, dim=2, lower_bound=lb, upper_bound=ub,
+                      config=BasinHoppingSamplerConfig(n_runs=30, seed=42))
     results[name] = lon.compute_metrics()
     results[name]['n_vertices'] = lon.n_vertices
 

@@ -6,3 +6,4 @@ paper_reproduction.py
 site/
 CLAUDE.md
 __pycache__/
+.DS_Store

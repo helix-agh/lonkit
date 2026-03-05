@@ -89,17 +89,6 @@ mkdocs build
 6. Push to your fork
 7. Open a Pull Request
 
-### Commit Messages
-
-Use clear, descriptive commit messages:
-
-```
-feat: add support for custom perturbation functions
-fix: correct edge weight calculation in CMLON
-docs: update visualization examples
-test: add tests for edge cases in sampling
-```
-
 ## Reporting Issues
 
 When reporting bugs, please include:

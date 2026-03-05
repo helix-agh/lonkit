@@ -34,7 +34,7 @@ Local Optima Networks (LONs) are graph-based models that capture the global stru
 
     ---
 
-    Compute landscape metrics including funnel analysis, neutrality measures, and global optima strength
+    Compute landscape metrics including funnel analysis, neutrality measures, and strength metrics (global and sink)
 
 - **Beautiful Visualizations**
 
@@ -48,20 +48,20 @@ Local Optima Networks (LONs) are graph-based models that capture the global stru
 
 ```python
 import numpy as np
-from lonpy import compute_lon, LONVisualizer
+from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 # Define the Rastrigin function
 def rastrigin(x):
     return 10 * len(x) + np.sum(x**2 - 10 * np.cos(2 * np.pi * x))
 
 # Build the LON
+config = BasinHoppingSamplerConfig(n_runs=20, seed=42)
 lon = compute_lon(
     rastrigin,
     dim=2,
     lower_bound=-5.12,
     upper_bound=5.12,
-    n_runs=20,
-    seed=42
+    config=config
 )
 
 # Analyze

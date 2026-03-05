@@ -22,21 +22,6 @@ cd lonpy
 pip install -e .
 ```
 
-## Dependencies
-
-lonpy automatically installs the following dependencies:
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| numpy | >= 1.24.0 | Numerical computations |
-| scipy | >= 1.10.0 | Optimization algorithms |
-| pandas | >= 2.0.0 | Data manipulation |
-| igraph | >= 0.11.0 | Graph operations |
-| matplotlib | >= 3.7.0 | 2D plotting |
-| plotly | >= 5.15.0 | Interactive 3D plots |
-| kaleido | >= 0.2.1 | Static image export |
-| imageio | >= 2.31.0 | GIF creation |
-
 ## Development Installation
 
 To install lonpy with development dependencies for contributing:

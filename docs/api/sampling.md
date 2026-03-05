@@ -17,7 +17,3 @@
       members:
         - sample
         - sample_to_lon
-        - hash_solution
-        - fitness_to_int
-        - bounded_perturbation
-        - unbounded_perturbation

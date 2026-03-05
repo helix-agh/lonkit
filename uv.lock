@@ -884,6 +884,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "ioh" },
     { name = "mkdocs" },
     { name = "mkdocs-material" },
     { name = "mkdocstrings" },
@@ -895,15 +896,11 @@ dev = [
     { name = "ruff" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "ioh" },
-]
-
 [package.metadata]
 requires-dist = [
     { name = "igraph", specifier = ">=0.11.0" },
     { name = "imageio", specifier = ">=2.31.0" },
+    { name = "ioh", marker = "extra == 'dev'", specifier = ">=0.3.22" },
     { name = "kaleido", specifier = ">=0.2.1" },
     { name = "matplotlib", specifier = ">=3.7.0" },
     { name = "mkdocs", marker = "extra == 'dev'", specifier = ">=1.6.1" },
@@ -921,9 +918,6 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.10.0" },
 ]
 provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "ioh", specifier = ">=0.3.22" }]
 
 [[package]]
 name = "markdown"

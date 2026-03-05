@@ -12,6 +12,7 @@ Data structures for Local Optima Networks.
 
 - [`LON`](lon.md#lonpy.lon.LON) - Local Optima Network representation
 - [`CMLON`](lon.md#lonpy.lon.CMLON) - Compressed Monotonic LON
+- [`LONConfig`](lon.md#lonpy.lon.LONConfig) - Configuration for LON construction
 
 ### [Sampling Module](sampling.md)
 
@@ -32,7 +33,7 @@ Plotting and animation tools.
 ### Creating a LON
 
 ```python
-from lonpy import compute_lon
+from lonpy import compute_lon, BasinHoppingSamplerConfig
 
 # Simple usage
 lon = compute_lon(
@@ -40,8 +41,7 @@ lon = compute_lon(
     dim=2,
     lower_bound=-5.0,
     upper_bound=5.0,
-    n_runs=20,
-    seed=42
+    config=BasinHoppingSamplerConfig(n_runs=20, seed=42)
 )
 ```
 
@@ -80,16 +80,3 @@ viz.create_rotation_gif(lon, output_path="lon.gif")
 # All visualizations
 viz.visualize_all(lon, output_folder="./output")
 ```
-
-## Dependencies
-
-lonpy depends on:
-
-- `numpy` - Numerical computations
-- `scipy` - Optimization
-- `pandas` - Data handling
-- `igraph` - Graph operations
-- `matplotlib` - 2D plotting
-- `plotly` - 3D plotting
-- `imageio` - GIF creation
-- `kaleido` - Static image export
