@@ -37,6 +37,12 @@ class StepSizeEstimatorConfig:
     bounded: bool = True
     seed: int | None = None
 
+    def __post_init__(self) -> None:
+        if not (0 <= self.target_escape_rate <= 1):
+            raise ValueError("target_escape_rate must be between 0 and 1.")
+        if self.search_precision < 1:
+            raise ValueError("search_precision must be at least 1.")
+
 
 @dataclass(frozen=True)
 class StepSizeResult:
