@@ -40,6 +40,10 @@ class StepSizeEstimatorConfig:
     seed: int | None = None
 
     def __post_init__(self) -> None:
+        if self.n_samples <= 0:
+            raise ValueError("n_samples must be greater than 0.")
+        if self.n_perturbations <= 0:
+            raise ValueError("n_perturbations must be greater than 0.")
         if not (0 <= self.target_escape_rate <= 1):
             raise ValueError("target_escape_rate must be between 0 and 1.")
         if self.search_precision < 1:
