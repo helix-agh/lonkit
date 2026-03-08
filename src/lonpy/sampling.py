@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from typing import Literal
 
 import numpy as np
