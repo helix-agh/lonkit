@@ -151,7 +151,8 @@ class StepSizeEstimator:
                 )
                 continue
             optimum = res.x
-            optimum_hash = sampler._hash_solution(optimum)
+            optimum_rounded = sampler._round_value(optimum, self.config.coordinate_precision)
+            optimum_hash = sampler._hash_solution(optimum_rounded)
 
             escapes = 0
             for _ in range(self.config.n_perturbations):
