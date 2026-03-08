@@ -68,6 +68,24 @@ class BasinHoppingSamplerConfig:
             )
 
 
+@dataclass
+class BasinHoppingSamplerResult:
+    """
+    Result of a Basin-Hopping sampling run.
+
+    Attributes:
+        trace_df: DataFrame with columns `[run, fit1, node1, fit2, node2]` representing
+            transitions between local optima.
+        raw_records: List of dicts with detailed iteration data, including all
+            perturbation attempts (both accepted and rejected). Each dict has keys
+            `run`, `iteration`, `current_x`, `current_f`, `new_x`, `new_f`, and `accepted`.
+    """
+
+    trace_df: pd.DataFrame
+    raw_records: list[dict]
+    nfev: int = 0
+
+
 class BasinHoppingSampler:
     """
     Basin-Hopping sampler for constructing Local Optima Networks.
@@ -79,7 +97,8 @@ class BasinHoppingSampler:
     Example:
         >>> config = BasinHoppingSamplerConfig(n_runs=10, n_iter_no_change=1000)
         >>> sampler = BasinHoppingSampler(config)
-        >>> lon = sampler.sample_to_lon(objective_func, domain)
+        >>> result = sampler.sample(objective_func, domain)
+        >>> lon = sampler.sample_to_lon(result)
     """
 
     def __init__(self, config: BasinHoppingSamplerConfig | None = None):
@@ -132,7 +151,7 @@ class BasinHoppingSampler:
         domain: list[tuple[float, float]],
         initial_points: np.ndarray,
         progress_callback: Callable[[int, int], None] | None = None,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], int]:
         """
         Run Basin-Hopping sampling to generate LON data.
 
@@ -143,12 +162,14 @@ class BasinHoppingSampler:
             progress_callback: Optional callback(run, total_runs) for progress.
 
         Returns:
-            List of raw sampling records, one per perturbation step.
-            Each record is a dict with keys: run, iteration, current_x,
-            current_f, new_x, new_f, accepted.
+            Tuple of (raw_records, nfev_total) where raw_records is a list of
+            raw sampling records (one per perturbation step, each a dict with keys:
+            run, iteration, current_x, current_f, new_x, new_f, accepted) and
+            nfev_total is the total number of function evaluations.
         """
         n_var = len(domain)
         domain_array = np.array(domain)
+        nfev_total = 0
 
         # Compute step size based on mode
         if self.config.step_mode == "percentage":
@@ -181,6 +202,7 @@ class BasinHoppingSampler:
 
             current_x = res.x
             current_f = res.fun
+            nfev_total += res.nfev
 
             iters_without_improvement = 0
             iter_index = 0
@@ -219,6 +241,7 @@ class BasinHoppingSampler:
 
                 new_x = res.x
                 new_f = res.fun
+                nfev_total += res.nfev
 
                 raw_records.append(
                     {
@@ -245,7 +268,7 @@ class BasinHoppingSampler:
 
                 iter_index += 1
 
-        return raw_records
+        return raw_records, nfev_total
 
     def _construct_trace_data(self, raw_records: list[dict]) -> pd.DataFrame:
         """
@@ -335,7 +358,7 @@ class BasinHoppingSampler:
         domain: list[tuple[float, float]],
         initial_points: np.ndarray | None = None,
         progress_callback: Callable[[int, int], None] | None = None,
-    ) -> tuple[pd.DataFrame, list[dict]]:
+    ) -> BasinHoppingSamplerResult:
         """
         Run Basin-Hopping sampling and construct trace data.
 
@@ -348,49 +371,44 @@ class BasinHoppingSampler:
             progress_callback: Optional callback(run, total_runs) for progress. Default: `None`.
 
         Returns:
-            Tuple of (trace_df, raw_records):
-                - trace_df: DataFrame with columns `[run, fit1, node1, fit2, node2]`
-                - raw_records: List of dicts with detailed iteration data.
+            BasinHoppingSamplerResult: Result of the sampling run.
         """
         resolved_points = self._resolve_initial_points(initial_points, domain)
 
         # Collect all raw sampling data
-        raw_records = self._basin_hopping_sampling(func, domain, resolved_points, progress_callback)
+        raw_records, nfev_total = self._basin_hopping_sampling(
+            func, domain, resolved_points, progress_callback
+        )
 
         # Construct trace data from accepted transitions
         trace_df = self._construct_trace_data(raw_records)
 
-        return trace_df, raw_records
+        return BasinHoppingSamplerResult(
+            trace_df=trace_df, raw_records=raw_records, nfev=nfev_total
+        )
 
     def sample_to_lon(
         self,
-        func: Callable[[np.ndarray], float],
-        domain: list[tuple[float, float]],
-        initial_points: np.ndarray | None = None,
-        progress_callback: Callable[[int, int], None] | None = None,
+        sampler_result: BasinHoppingSamplerResult,
         lon_config: LONConfig | None = None,
     ) -> LON:
         """
-        Run Basin-Hopping sampling and construct a LON.
+        Construct a LON from a `BasinHoppingSamplerResult`.
 
-        Convenience wrapper that calls `sample()` and passes the resulting
-        trace data to `LON.from_trace_data()`. Equivalent to calling
-        `sample()` followed by `LON.from_trace_data(trace_df, config=lon_config)`.
+        Convenience wrapper that passes the trace data from a sampling result
+        to `LON.from_trace_data()`. Equivalent to calling
+        `LON.from_trace_data(sampler_result.trace_df, config=lon_config)`.
 
         Args:
-            func: Objective function to minimize (f: R^n_var -> R).
-            domain: List of (lower, upper) bounds per dimension.
-            initial_points: Optional array of shape (`config.n_runs`, `n_var`) with
-                starting points for each run. If `None`, points are sampled
-                uniformly at random from the domain. Default: `None`.
-            progress_callback: Optional callback(run, total_runs) for progress. Default: `None`.
+            sampler_result: Result returned by `sample()`.
             lon_config: LON construction configuration. If `None`, uses default
                 `LONConfig`. Default: `None`.
 
         Returns:
             `LON` instance constructed from the sampling trace.
         """
-        trace_df, _ = self.sample(func, domain, initial_points, progress_callback)
+
+        trace_df = sampler_result.trace_df
 
         if trace_df.empty:
             return LON()
@@ -454,4 +472,5 @@ def compute_lon(
     domain = list(zip(lower_bounds, upper_bounds, strict=True))
 
     sampler = BasinHoppingSampler(config)
-    return sampler.sample_to_lon(func, domain, initial_points=initial_points, lon_config=lon_config)
+    result = sampler.sample(func, domain, initial_points=initial_points)
+    return sampler.sample_to_lon(result, lon_config=lon_config)
