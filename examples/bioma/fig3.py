@@ -21,7 +21,7 @@ FUNCTIONS = {
     ),
     "Griewank": FunctionConfig(
         func=griewank,
-        bounds=(-200, 200),
+        bounds=(-600, 600),
         step_size=3.6,
         n_iter_no_change=200,
     ),
