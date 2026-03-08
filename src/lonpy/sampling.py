@@ -402,9 +402,7 @@ class BasinHoppingSampler:
         # Construct trace data from accepted transitions
         trace_df = self._construct_trace_data(raw_records)
 
-        return BasinHoppingResult(
-            trace_df=trace_df, raw_records=raw_records, nfev=nfev_total
-        )
+        return BasinHoppingResult(trace_df=trace_df, raw_records=raw_records, nfev=nfev_total)
 
     def sample_to_lon(
         self,
