@@ -32,9 +32,9 @@ class StepSizeEstimatorConfig:
     target_escape_rate: float = 0.5
     search_precision: int = 4
     coordinate_precision: int | None = 4
-    minimizer_method: str = "L-BFGS-B"
-    minimizer_options: dict = field(
-        default_factory=lambda: {"ftol": 1e-07, "gtol": 1e-05, "maxiter": 15000}
+    minimizer_method: str | Callable | None = "L-BFGS-B"
+    minimizer_options: dict | None = field(
+        default_factory=lambda: {"ftol": 1e-07, "gtol": 0, "maxiter": 15000}
     )
     bounded: bool = True
     seed: int | None = None
