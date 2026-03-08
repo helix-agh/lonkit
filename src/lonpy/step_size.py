@@ -115,7 +115,6 @@ class StepSizeEstimator:
         domain_array: np.ndarray,
         step_size: float,
         sampler: BasinHoppingSampler,
-        rng: np.random.Generator,
     ) -> float:
         """
         Compute the average escape rate for a given step size.
@@ -128,7 +127,7 @@ class StepSizeEstimator:
         escape_rates = []
 
         for _ in range(self.config.n_samples):
-            x0 = rng.uniform(domain_array[:, 0], domain_array[:, 1])
+            x0 = sampler._rng.uniform(domain_array[:, 0], domain_array[:, 1])
             try:
                 res = minimize(
                     func,
@@ -194,7 +193,6 @@ class StepSizeEstimator:
         """
         domain_array = np.array(domain)
         sampler = self._make_sampler()
-        rng = np.random.default_rng(self.config.seed)
 
         step = 0.1
         increment = 0.1
@@ -206,7 +204,7 @@ class StepSizeEstimator:
 
         for _ in range(self.config.search_precision):
             while step <= 1.0 + 1e-12:  # epsilon to ensure step=1.0 is tested despite float drift
-                rate = self._compute_escape_rate(func, domain_array, step, sampler, rng)
+                rate = self._compute_escape_rate(func, domain_array, step, sampler)
                 last_tested = (step, rate)
 
                 if rate < target:
