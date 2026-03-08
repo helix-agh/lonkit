@@ -14,15 +14,19 @@ class TestHashSolution:
         threshold = 0.5 * 10 ** (-precision)
         small_pos = np.array([threshold / 2, threshold / 3])
         small_neg = -small_pos
-
-        assert sampler._hash_solution(small_pos) == sampler._hash_solution(small_neg)
+        small_pos_rounded = sampler._round_value(small_pos, precision)
+        small_neg_rounded = sampler._round_value(small_neg, precision)
+        assert sampler._hash_solution(small_pos_rounded) == sampler._hash_solution(
+            small_neg_rounded
+        )
 
     def test_negative_zero_hashes_same_as_positive_zero(self) -> None:
         config = BasinHoppingSamplerConfig(coordinate_precision=1)
         sampler = BasinHoppingSampler(config)
-
-        assert sampler._hash_solution(np.array([-0.0, -0.0])) == sampler._hash_solution(
-            np.array([0.0, 0.0])
+        small_pos_rounded = sampler._round_value(np.array([0.0, 0.0]), 1)
+        small_neg_rounded = sampler._round_value(np.array([-0.0, -0.0]), 1)
+        assert sampler._hash_solution(small_pos_rounded) == sampler._hash_solution(
+            small_neg_rounded
         )
 
     def test_negative_zero_hashes_same_as_positive_zero_no_precision(self) -> None:

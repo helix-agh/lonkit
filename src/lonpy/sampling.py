@@ -137,8 +137,10 @@ class BasinHoppingSampler:
         Returns:
             Hash string identifying the local optimum.
         """
+        x = (
+            x + 0.0
+        )  # Convert -0.0 to 0.0 for consistent hashing (avoids in-place mutation of input)
         precision = self.config.coordinate_precision
-        x = self._round_value(x, precision) + 0.0  # Round then convert -0.0 to 0.0
         formatter = str if precision is None or precision < 0 else lambda v: f"{v:.{precision}f}"
         hash_str = "_".join(formatter(v) for v in x)
 
