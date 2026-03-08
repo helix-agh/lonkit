@@ -92,12 +92,34 @@ class BasinHoppingSampler:
         p: np.ndarray,
         bounds: np.ndarray | None = None,
     ) -> np.ndarray:
+        """
+        Apply a random uniform perturbation to a solution.
+
+        Args:
+            x: Current solution coordinates.
+            p: Per-dimension perturbation magnitude.
+            bounds: Optional (n_var, 2) array of domain bounds for clipping.
+
+        Returns:
+            Perturbed solution, clipped to bounds if ``bounded`` is enabled.
+        """
         y = x + self._rng.uniform(low=-p, high=p)
         if self.config.bounded and bounds is not None:
             return np.clip(y, bounds[:, 0], bounds[:, 1])
         return y
 
     def _round_value(self, value: np.ndarray, precision: int | None) -> np.ndarray:
+        """
+        Round a value to the given decimal precision.
+
+        Args:
+            value: Value or array to round.
+            precision: Number of decimal places. ``None`` or negative values
+                skip rounding and return the input unchanged.
+
+        Returns:
+            Rounded value (or the original if precision is ``None``/negative).
+        """
         if precision is None or precision < 0:
             return value
         return np.round(value, precision)
@@ -115,11 +137,9 @@ class BasinHoppingSampler:
         Returns:
             Hash string identifying the local optimum.
         """
-
         x = (
             x + 0.0
         )  # Convert -0.0 to 0.0 for consistent hashing (avoids in-place mutation of input)
-
         precision = self.config.coordinate_precision
         formatter = str if precision is None or precision < 0 else lambda v: f"{v:.{precision}f}"
         hash_str = "_".join(formatter(v) for v in x)
