@@ -30,7 +30,7 @@ class StepSizeEstimatorConfig:
         minimizer_options: Solver-specific options passed as the ``options`` argument to
             ``scipy.optimize.minimize``. The available keys depend on the chosen
             ``minimizer_method``. Use ``None`` to rely on scipy's defaults.
-            Default: `{"ftol": 1e-07, "gtol": 0, "maxiter": 15000}`.
+            Default: `None`.
         bounded: Whether to enforce domain bounds during perturbation. Default: `True`.
         seed: Random seed for reproducibility. Default: `None`.
     """
@@ -41,9 +41,7 @@ class StepSizeEstimatorConfig:
     search_precision: int = 4
     coordinate_precision: int | None = 4
     minimizer_method: str | Callable | None = "L-BFGS-B"
-    minimizer_options: dict | None = field(
-        default_factory=lambda: {"ftol": 1e-07, "gtol": 0, "maxiter": 15000}
-    )
+    minimizer_options: dict | None = None
     bounded: bool = True
     seed: int | None = None
 
@@ -76,7 +74,7 @@ class StepSizeResult:
 
 class StepSizeEstimator:
     """
-    Estimates the optimal fixed step size for basin-hopping sampling.
+    Estimates the optimal percentage step size for basin-hopping sampling.
 
     The optimal step size is defined as the one that produces an escape rate
     closest to a target ``X`` (default 0.5), meaning ~ ``X * 100%`` of perturbations lead to

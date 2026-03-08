@@ -20,12 +20,12 @@ class BasinHoppingSamplerConfig:
     Attributes:
         n_runs: Number of independent Basin-Hopping runs.  Default: `100`.
         n_iter_no_change: Maximum number of consecutive non-improving perturbations before stopping each run.
-            Use `None` for no limit. Setting both `n_iter_no_change` and `max_iter` to `None` will result in an error. Default: `1000`.
+            Use `None` for no limit. Setting both `n_iter_no_change` and `max_iter` to `None` will result in an error. Default: `250`.
         max_iter: Optional maximum number of total iterations (perturbation steps) per run.
             Use `None` for no limit. Setting both `n_iter_no_change` and `max_iter` to `None` will result in an error. Default: `None`.
         step_mode: Perturbation mode - `"percentage"` (of domain range)
-            or `"fixed"` (absolute step size). Default: `"fixed"`.
-        step_size: Perturbation magnitude (interpretation depends on step_mode). Default: `0.01`.
+            or `"fixed"` (absolute step size). Default: `"percentage"`.
+        step_size: Perturbation magnitude (interpretation depends on step_mode). Default: `0.1`.
         fitness_precision: Decimal precision for fitness values.
             Use `None` for full double precision. Passing negative values behaves the same as passing `None`. Default: `None`.
         coordinate_precision: Decimal precision for coordinate rounding and hashing.
@@ -39,22 +39,20 @@ class BasinHoppingSamplerConfig:
         minimizer_options: Solver-specific options passed as the ``options`` argument to
             ``scipy.optimize.minimize``. The available keys depend on the chosen
             ``minimizer_method``. Use ``None`` to rely on scipy's defaults.
-            Default: `{"ftol": 1e-07, "gtol": 0, "maxiter": 15000}`.
+            Default: `None`.
         seed: Random seed for reproducibility. Default: `None`.
     """
 
     n_runs: int = 100
-    n_iter_no_change: int | None = 1000
+    n_iter_no_change: int | None = 250
     max_iter: int | None = None
-    step_mode: StepMode = "fixed"
-    step_size: float = 0.01
+    step_mode: StepMode = "percentage"
+    step_size: float = 0.1
     fitness_precision: int | None = None
     coordinate_precision: int | None = 5
     bounded: bool = True
     minimizer_method: str | Callable | None = "L-BFGS-B"
-    minimizer_options: dict | None = field(
-        default_factory=lambda: {"ftol": 1e-07, "gtol": 0, "maxiter": 15000}
-    )
+    minimizer_options: dict | None = None
     seed: int | None = None
 
     def __post_init__(self) -> None:
@@ -96,7 +94,7 @@ class BasinHoppingSampler:
     transitions between local optima for LON construction.
 
     Example:
-        >>> config = BasinHoppingSamplerConfig(n_runs=10, n_iter_no_change=1000)
+        >>> config = BasinHoppingSamplerConfig(n_runs=10, n_iter_no_change=250)
         >>> sampler = BasinHoppingSampler(config)
         >>> result = sampler.sample(objective_func, domain)
         >>> lon = sampler.sample_to_lon(result)
