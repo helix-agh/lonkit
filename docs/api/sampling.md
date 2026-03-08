@@ -17,3 +17,9 @@
       members:
         - sample
         - sample_to_lon
+
+::: lonpy.sampling.BasinHoppingResult
+    options:
+        trace_df: true
+        raw_records: true
+        nfev: true

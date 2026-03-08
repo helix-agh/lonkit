@@ -69,7 +69,7 @@ class BasinHoppingSamplerConfig:
 
 
 @dataclass
-class BasinHoppingSamplerResult:
+class BasinHoppingResult:
     """
     Result of a Basin-Hopping sampling run.
 
@@ -79,6 +79,7 @@ class BasinHoppingSamplerResult:
         raw_records: List of dicts with detailed iteration data, including all
             perturbation attempts (both accepted and rejected). Each dict has keys
             `run`, `iteration`, `current_x`, `current_f`, `new_x`, `new_f`, and `accepted`.
+        nfev: Total number of objective function evaluations across all runs.
     """
 
     trace_df: pd.DataFrame
@@ -378,7 +379,7 @@ class BasinHoppingSampler:
         domain: list[tuple[float, float]],
         initial_points: np.ndarray | None = None,
         progress_callback: Callable[[int, int], None] | None = None,
-    ) -> BasinHoppingSamplerResult:
+    ) -> BasinHoppingResult:
         """
         Run Basin-Hopping sampling and construct trace data.
 
@@ -391,7 +392,7 @@ class BasinHoppingSampler:
             progress_callback: Optional callback(run, total_runs) for progress. Default: `None`.
 
         Returns:
-            BasinHoppingSamplerResult: Result of the sampling run.
+            BasinHoppingResult: Result of the sampling run.
         """
         resolved_points = self._resolve_initial_points(initial_points, domain)
 
@@ -403,17 +404,17 @@ class BasinHoppingSampler:
         # Construct trace data from accepted transitions
         trace_df = self._construct_trace_data(raw_records)
 
-        return BasinHoppingSamplerResult(
+        return BasinHoppingResult(
             trace_df=trace_df, raw_records=raw_records, nfev=nfev_total
         )
 
     def sample_to_lon(
         self,
-        sampler_result: BasinHoppingSamplerResult,
+        sampler_result: BasinHoppingResult,
         lon_config: LONConfig | None = None,
     ) -> LON:
         """
-        Construct a LON from a `BasinHoppingSamplerResult`.
+        Construct a LON from a `BasinHoppingResult`.
 
         Convenience wrapper that passes the trace data from a sampling result
         to `LON.from_trace_data()`. Equivalent to calling
