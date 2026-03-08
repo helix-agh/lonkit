@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -128,26 +129,46 @@ class StepSizeEstimator:
 
         for _ in range(self.config.n_samples):
             x0 = rng.uniform(domain_array[:, 0], domain_array[:, 1])
-            res = minimize(
-                func,
-                x0,
-                method=self.config.minimizer_method,
-                options=self.config.minimizer_options,
-                bounds=bounds_array,
-            )
+            try:
+                res = minimize(
+                    func,
+                    x0,
+                    method=self.config.minimizer_method,
+                    options=self.config.minimizer_options,
+                    bounds=bounds_array if self.config.bounded else None,
+                )
+            except ValueError as e:
+                warnings.warn(
+                    f"Initial minimize failed with ValueError: {e}. "
+                    f"Starting point: {x0}. Skipping run.",
+                    stacklevel=3,
+                )
+                continue
             optimum = res.x
             optimum_hash = sampler._hash_solution(optimum)
 
             escapes = 0
             for _ in range(self.config.n_perturbations):
                 x_perturbed = sampler._perturbation(optimum, p, bounds_array)
-                res_perturbed = minimize(
-                    func,
-                    x_perturbed,
-                    method=self.config.minimizer_method,
-                    options=self.config.minimizer_options,
-                    bounds=bounds_array,
-                )
+                try:
+                    res_perturbed = minimize(
+                        func,
+                        x_perturbed,
+                        method=self.config.minimizer_method,
+                        options=self.config.minimizer_options,
+                        bounds=bounds_array,
+                    )
+                except ValueError as e:
+                    # L-BFGS-B can produce internal iterates that slightly
+                    # violate bounds, causing approx_derivative to fail.
+                    # Skip this perturbation and try the next one.
+                    warnings.warn(
+                        f"Minimize after perturbation "
+                        f"failed with ValueError: {e}. "
+                        f"Perturbed point: {x_perturbed}. Skipping perturbation.",
+                        stacklevel=3,
+                    )
+                    continue
                 new_hash = sampler._hash_solution(res_perturbed.x)
                 if new_hash != optimum_hash:
                     escapes += 1
