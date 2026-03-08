@@ -71,7 +71,7 @@ class StepSizeEstimator:
     Estimates the optimal fixed step size for basin-hopping sampling.
 
     The optimal step size is defined as the one that produces an escape rate
-    closest to a target (default 0.5), meaning ~50% of perturbations lead to
+    closest to a target ``X`` (default 0.5), meaning ~ ``X * 100%`` of perturbations lead to
     a different local optimum.
 
     The search uses a decimal refinement approach, progressively narrowing
@@ -136,11 +136,11 @@ class StepSizeEstimator:
                 bounds=bounds_array,
             )
             optimum = res.x
-            optimum_hash = sampler.hash_solution(optimum)
+            optimum_hash = sampler._hash_solution(optimum)
 
             escapes = 0
             for _ in range(self.config.n_perturbations):
-                x_perturbed = sampler.perturbation(optimum, p, bounds_array)
+                x_perturbed = sampler._perturbation(optimum, p, bounds_array)
                 res_perturbed = minimize(
                     func,
                     x_perturbed,
@@ -148,7 +148,7 @@ class StepSizeEstimator:
                     options=self.config.minimizer_options,
                     bounds=bounds_array,
                 )
-                new_hash = sampler.hash_solution(res_perturbed.x)
+                new_hash = sampler._hash_solution(res_perturbed.x)
                 if new_hash != optimum_hash:
                     escapes += 1
 

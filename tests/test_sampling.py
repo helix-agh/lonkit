@@ -15,13 +15,13 @@ class TestHashSolution:
         small_pos = np.array([threshold / 2, threshold / 3])
         small_neg = -small_pos
 
-        assert sampler.hash_solution(small_pos) == sampler.hash_solution(small_neg)
+        assert sampler._hash_solution(small_pos) == sampler._hash_solution(small_neg)
 
     def test_negative_zero_hashes_same_as_positive_zero(self) -> None:
         config = BasinHoppingSamplerConfig(coordinate_precision=1)
         sampler = BasinHoppingSampler(config)
 
-        assert sampler.hash_solution(np.array([-0.0, -0.0])) == sampler.hash_solution(
+        assert sampler._hash_solution(np.array([-0.0, -0.0])) == sampler._hash_solution(
             np.array([0.0, 0.0])
         )
 
@@ -29,4 +29,4 @@ class TestHashSolution:
         config = BasinHoppingSamplerConfig(coordinate_precision=None)
         sampler = BasinHoppingSampler(config)
 
-        assert sampler.hash_solution(np.array([-0.0])) == sampler.hash_solution(np.array([0.0]))
+        assert sampler._hash_solution(np.array([-0.0])) == sampler._hash_solution(np.array([0.0]))

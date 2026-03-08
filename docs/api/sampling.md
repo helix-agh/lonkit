@@ -17,6 +17,3 @@
       members:
         - sample
         - sample_to_lon
-        - perturbation
-        - round_value
-        - hash_solution
