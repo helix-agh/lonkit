@@ -44,7 +44,7 @@ def main() -> None:
             print(f"  percentage  : {result.step_size:.8f}")
             print(f"  escape rate : {result.escape_rate:.6f}")
             print(f"  error       : {result.error:.6f}")
-            print(f"  beta        : {step_abs:.4f}")
+            print(f"  step        : {step_abs:.4f}")
 
 
 if __name__ == "__main__":
