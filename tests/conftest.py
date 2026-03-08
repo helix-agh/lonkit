@@ -24,10 +24,10 @@ def rastrigin(x: np.ndarray) -> float:
 @pytest.fixture(scope="session")
 def sphere_lon() -> LON:
     sampler = BasinHoppingSampler(DEFAULT_CONFIG)
-    return sampler.sample_to_lon(sphere, DOMAIN_2D)
+    return sampler.sample_to_lon(sampler.sample(sphere, DOMAIN_2D))
 
 
 @pytest.fixture(scope="session")
 def rastrigin_lon() -> LON:
     sampler = BasinHoppingSampler(DEFAULT_CONFIG)
-    return sampler.sample_to_lon(rastrigin, DOMAIN_2D)
+    return sampler.sample_to_lon(sampler.sample(rastrigin, DOMAIN_2D))
