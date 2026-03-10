@@ -20,6 +20,5 @@
 
 ::: lonpy.sampling.BasinHoppingResult
     options:
-        trace_df: true
-        raw_records: true
-        nfev: true
+      show_root_heading: true
+      show_source: true
