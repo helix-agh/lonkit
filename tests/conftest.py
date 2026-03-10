@@ -21,6 +21,12 @@ def rastrigin(x: np.ndarray) -> float:
     return float(A * len(x) + np.sum(x**2 - A * np.cos(2 * np.pi * x)))
 
 
+def griewank(x: np.ndarray) -> float:
+    x = np.asarray(x, dtype=float)
+    i = np.arange(1, len(x) + 1)
+    return float(np.sum(x**2 / 4000.0) - np.prod(np.cos(x / np.sqrt(i))) + 1.0)
+
+
 @pytest.fixture(scope="session")
 def sphere_lon() -> LON:
     sampler = BasinHoppingSampler(DEFAULT_CONFIG)
