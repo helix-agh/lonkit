@@ -82,7 +82,7 @@ class BasinHoppingResult:
 
     trace_df: pd.DataFrame
     raw_records: list[dict]
-    nfev: int = 0
+    nfev: int
 
 
 class BasinHoppingSampler:
