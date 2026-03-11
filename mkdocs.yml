@@ -4,7 +4,7 @@ site_author: HELIX AGH
 site_url: https://helix-agh.github.io/lonkit
 
 repo_name: helix-agh/lonkit
-repo_url: https://github.com/helix-agh/lon
+repo_url: https://github.com/helix-agh/lonkit
 
 theme:
   name: material
