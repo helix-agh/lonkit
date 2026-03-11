@@ -1,14 +1,14 @@
 # Contributing
 
-Thank you for your interest in contributing to lonpy!
+Thank you for your interest in contributing to lonkit!
 
 ## Development Setup
 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/helix-agh/lonpy.git
-cd lonpy
+git clone https://github.com/helix-agh/lonkit.git
+cd lonkit
 ```
 
 2. Install with development dependencies:
@@ -34,7 +34,7 @@ pytest
 With coverage:
 
 ```bash
-pytest --cov=lonpy --cov-report=html
+pytest --cov=lonkit --cov-report=html
 ```
 
 ### Code Quality
@@ -94,7 +94,7 @@ mkdocs build
 When reporting bugs, please include:
 
 - Python version
-- lonpy version
+- lonkit version
 - Minimal reproducible example
 - Expected vs actual behavior
 - Full error traceback
@@ -109,8 +109,8 @@ Feature requests are welcome! Please:
 
 ## Questions
 
-For questions about using lonpy:
+For questions about using lonkit, please:
 
 - Check the [documentation](index.md)
-- Search existing [issues](https://github.com/helix-agh/lonpy/issues)
+- Search existing [issues](https://github.com/helix-agh/lonkit/issues)
 - Open a new issue with the "question" label

@@ -1,6 +1,6 @@
 # Visualization Module
 
-::: lonpy.visualization.LONVisualizer
+::: lonkit.visualization.LONVisualizer
     options:
       show_root_heading: true
       show_source: true

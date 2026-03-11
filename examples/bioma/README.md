@@ -1,6 +1,6 @@
 # Reproducing Figures from BIOMA 2020
 
-This directory contains scripts that reproduce figures from the following paper using `lonpy`:
+This directory contains scripts that reproduce figures from the following paper using `lonkit`:
 
 > Contreras-Cruz, M.A., Ochoa, G., Ramirez-Paredes, J.P. (2020).
 > **Synthetic vs. Real-World Continuous Landscapes: A Local Optima Networks View.**
@@ -8,7 +8,7 @@ This directory contains scripts that reproduce figures from the following paper 
 > Lecture Notes in Computer Science, vol 12438. Springer, Cham.
 > <https://doi.org/10.1007/978-3-030-63710-1_1>
 
-The goal is to validate the `lonpy` implementation by reproducing the key figures from this paper.
+The goal is to validate the `lonkit` implementation by reproducing the key figures from this paper.
 
 ## Test Functions
 

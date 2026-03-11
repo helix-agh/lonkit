@@ -1,16 +1,16 @@
 # Sampling Module
 
-::: lonpy.sampling.compute_lon
+::: lonkit.sampling.compute_lon
     options:
       show_root_heading: true
       show_source: true
 
-::: lonpy.sampling.BasinHoppingSamplerConfig
+::: lonkit.sampling.BasinHoppingSamplerConfig
     options:
       show_root_heading: true
       show_source: true
 
-::: lonpy.sampling.BasinHoppingSampler
+::: lonkit.sampling.BasinHoppingSampler
     options:
       show_root_heading: true
       show_source: true

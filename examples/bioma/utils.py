@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-from lonpy import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
+from lonkit import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
 
 DEFAULT_N_RUNS = 100
 DEFAULT_FITNESS_PRECISION = 2

@@ -7,7 +7,7 @@ This guide explains how to analyze LONs and interpret the computed metrics.
 Both LON and CMLON provide a `compute_metrics()` method:
 
 ```python
-from lonpy import compute_lon, BasinHoppingSamplerConfig
+from lonkit import compute_lon, BasinHoppingSamplerConfig
 
 lon = compute_lon(func, dim=2, lower_bound=-5, upper_bound=5,
                   config=BasinHoppingSamplerConfig(n_runs=30))
@@ -306,7 +306,7 @@ print(classify_landscape(lon))
 
 ```python
 import numpy as np
-from lonpy import compute_lon, BasinHoppingSamplerConfig
+from lonkit import compute_lon, BasinHoppingSamplerConfig
 
 def sphere(x):
     return np.sum(x**2)

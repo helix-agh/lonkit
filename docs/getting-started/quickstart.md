@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide will get you up and running with lonpy in just a few minutes.
+This guide will get you up and running with lonkit in just a few minutes.
 
 ## Your First LON
 
@@ -8,7 +8,7 @@ Let's create a Local Optima Network for the classic Rastrigin function:
 
 ```python
 import numpy as np
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 # 1. Define your objective function
 def rastrigin(x):
@@ -36,7 +36,7 @@ print(f"Transitions recorded: {lon.n_edges}")
 
 ## Analyzing the Landscape
 
-lonpy computes useful metrics about your fitness landscape:
+lonkit computes useful metrics about your fitness landscape:
 
 ```python
 # Get landscape metrics
@@ -131,7 +131,7 @@ Here's a full script that generates all visualizations:
 
 ```python
 import numpy as np
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 def rastrigin(x):
     return 10 * len(x) + np.sum(x**2 - 10 * np.cos(2 * np.pi * x))

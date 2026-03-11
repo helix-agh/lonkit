@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from lonpy import BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig
 
 
 class TestHashSolution:

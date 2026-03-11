@@ -1,10 +1,10 @@
-# lonpy
+# lonkit
 
 **Local Optima Networks for Continuous Optimization**
 
-![lonpy](assets/icon.png){ width="100%" }
+![lonkit](assets/icon.png){ width="100%" }
 
-lonpy is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous optimization problems.
+lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous optimization problems.
 
 ## What are Local Optima Networks?
 
@@ -48,7 +48,7 @@ Local Optima Networks (LONs) are graph-based models that capture the global stru
 
 ```python
 import numpy as np
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 # Define the Rastrigin function
 def rastrigin(x):
@@ -77,7 +77,7 @@ viz.plot_3d(lon, output_path="landscape.png")
 ## Installation
 
 ```bash
-pip install lonpy
+pip install lonkit
 ```
 
 ## Next Steps

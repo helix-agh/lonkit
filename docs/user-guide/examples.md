@@ -1,12 +1,12 @@
 # Examples
 
-Complete examples demonstrating lonpy's capabilities.
+Complete examples demonstrating lonkit's capabilities.
 
 ## Basic LON Analysis
 
 ```python
 import numpy as np
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 # Define the Rastrigin function
 def rastrigin(x):
@@ -47,7 +47,7 @@ viz.plot_3d(lon, output_path="rastrigin_3d.png", seed=42)
 ```python
 import numpy as np
 import pandas as pd
-from lonpy import compute_lon, BasinHoppingSamplerConfig
+from lonkit import compute_lon, BasinHoppingSamplerConfig
 
 # Test functions
 def sphere(x):
@@ -112,7 +112,7 @@ print(df.to_string(index=False))
 
 ```python
 import numpy as np
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 def rastrigin(x):
     return 10 * len(x) + np.sum(x**2 - 10 * np.cos(2 * np.pi * x))
@@ -157,7 +157,7 @@ viz.plot_3d(cmlon, output_path="cmlon_3d.png", seed=42)
 
 ```python
 import numpy as np
-from lonpy import BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
+from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
 
 def schwefel(x):
     """Schwefel function - deceptive with distant global optimum."""
@@ -206,7 +206,7 @@ print(f"Sink strength: {metrics['sink_strength']:.1%}")
 ```python
 import numpy as np
 import pandas as pd
-from lonpy import BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig
 
 def sphere(x):
     return np.sum(x**2)
@@ -239,7 +239,7 @@ print(f"\nAcceptance rate: {accepted/total:.1%}")
 
 ```python
 import numpy as np
-from lonpy import compute_lon, BasinHoppingSamplerConfig
+from lonkit import compute_lon, BasinHoppingSamplerConfig
 
 def rastrigin(x):
     return 10 * len(x) + np.sum(x**2 - 10 * np.cos(2 * np.pi * x))
@@ -279,7 +279,7 @@ if g.ecount() > 0:
 import numpy as np
 import json
 from pathlib import Path
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 def analyze_function(name, func, bounds, output_dir):
     """Analyze a function and save results."""

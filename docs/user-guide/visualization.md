@@ -5,7 +5,7 @@ This guide covers how to create visualizations of Local Optima Networks.
 ## Quick Start
 
 ```python
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 # Build a LON
 lon = compute_lon(my_func, dim=2, lower_bound=-5, upper_bound=5,
