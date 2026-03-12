@@ -1,14 +1,14 @@
 <div align="center">
-    <img src="docs/assets/icon.png" alt="lonpy" width="800">
+    <img src="docs/assets/icon.png" alt="lonkit" width="800">
 </div>
 
-[![PyPI version](https://badge.fury.io/py/lonpy.svg)](https://pypi.org/project/lonpy/)
+[![PyPI version](https://badge.fury.io/py/lonkit.svg)](https://pypi.org/project/lonkit/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Ujl48ffgHg9ck1Hueh59s65OR3Q3BG99?usp=sharing)
 
 **Local Optima Networks for Continuous Optimization**
 
-lonpy is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
+lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
 
 ## Features
 
@@ -21,14 +21,14 @@ lonpy is a Python library for constructing, analyzing, and visualizing Local Opt
 ## Installation
 
 ```bash
-pip install lonpy
+pip install lonkit
 ```
 
 Or install from source:
 
 ```bash
-git clone https://github.com/helix-agh/lonpy.git
-cd lonpy
+git clone https://github.com/helix-agh/lonkit.git
+cd lonkit
 pip install -e .
 ```
 
@@ -36,7 +36,7 @@ pip install -e .
 
 ```python
 import numpy as np
-from lonpy import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
+from lonkit import compute_lon, LONVisualizer, BasinHoppingSamplerConfig
 
 # Define an objective function
 def rastrigin(x: np.ndarray) -> float:
@@ -81,7 +81,7 @@ cmlon_metrics = cmlon.compute_metrics()
 ### Custom Sampling Configuration
 
 ```python
-from lonpy import BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig
 
 config = BasinHoppingSamplerConfig(
     n_runs=50,                   # Number of independent runs
@@ -104,7 +104,7 @@ lon = sampler.sample_to_lon(rastrigin, domain)
 
 ## Documentation
 
-For full documentation, visit: [https://helix-agh.github.io/lonpy](https://helix-agh.github.io/lonpy)
+For full documentation, visit: [https://helix-agh.github.io/lonkit](https://helix-agh.github.io/lonkit)
 
 ## Contributing
 

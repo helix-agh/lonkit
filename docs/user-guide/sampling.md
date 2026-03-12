@@ -7,7 +7,7 @@ This guide covers how to configure Basin-Hopping sampling for LON construction.
 The simplest way to create a LON:
 
 ```python
-from lonpy import compute_lon, BasinHoppingSamplerConfig
+from lonkit import compute_lon, BasinHoppingSamplerConfig
 
 config = BasinHoppingSamplerConfig(n_runs=20, seed=42)
 lon = compute_lon(
@@ -24,7 +24,7 @@ lon = compute_lon(
 For more control, use `BasinHoppingSamplerConfig`:
 
 ```python
-from lonpy import BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig
 
 config = BasinHoppingSamplerConfig(
     n_runs=30,                  # Number of independent runs
@@ -156,7 +156,7 @@ config = BasinHoppingSamplerConfig(
 When constructing a LON from trace data, you can configure how duplicate nodes (nodes with multiple observed fitness values) are handled using `LONConfig`:
 
 ```python
-from lonpy import LONConfig, BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import LONConfig, BasinHoppingSampler, BasinHoppingSamplerConfig
 
 lon_config = LONConfig(
     fitness_aggregation="min",       # How to resolve duplicate fitness values
@@ -193,7 +193,7 @@ lon_config = LONConfig(max_fitness_deviation=0.01)
 You can also pass `lon_config` to `compute_lon()`:
 
 ```python
-from lonpy import compute_lon, LONConfig
+from lonkit import compute_lon, LONConfig
 
 lon = compute_lon(
     func=my_objective,
@@ -210,7 +210,7 @@ By default, Basin-Hopping starts each run from a random point sampled uniformly 
 
 ```python
 import numpy as np
-from lonpy import compute_lon, BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import compute_lon, BasinHoppingSampler, BasinHoppingSamplerConfig
 
 # Generate custom initial points (must have shape (n_runs, dim))
 n_runs = 30

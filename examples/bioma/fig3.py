@@ -10,7 +10,7 @@ from utils import (
     save_network_grid,
 )
 
-from lonpy import LONVisualizer
+from lonkit import LONVisualizer
 
 FUNCTIONS = {
     "Ackley 4": FunctionConfig(

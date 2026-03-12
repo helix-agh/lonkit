@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import minimize
 
-from lonpy.sampling import BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit.sampling import BasinHoppingSampler, BasinHoppingSamplerConfig
 
 
 @dataclass

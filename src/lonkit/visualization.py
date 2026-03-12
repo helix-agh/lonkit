@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
 
-from lonpy.lon import CMLON, LON
+from lonkit.lon import CMLON, LON
 
 COLORS = {
     "global_optimum": "red",

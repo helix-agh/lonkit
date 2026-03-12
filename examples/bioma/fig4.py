@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 from problems import ackley4, griewank, schwefel2_26
 from utils import IMAGES_DIR, FunctionConfig, build_cmlon
 
-from lonpy import LONVisualizer
+from lonkit import LONVisualizer
 
 FUNCTIONS = {
     "Ackley 4": FunctionConfig(

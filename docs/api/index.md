@@ -1,39 +1,39 @@
 # API Reference
 
-Complete API documentation for lonpy.
+Complete API documentation for lonkit.
 
 ## Modules
 
-lonpy is organized into three main modules:
+lonkit is organized into three main modules:
 
 ### [LON Module](lon.md)
 
 Data structures for Local Optima Networks.
 
-- [`LON`](lon.md#lonpy.lon.LON) - Local Optima Network representation
-- [`CMLON`](lon.md#lonpy.lon.CMLON) - Compressed Monotonic LON
-- [`LONConfig`](lon.md#lonpy.lon.LONConfig) - Configuration for LON construction
+- [`LON`](lon.md#lonkit.lon.LON) - Local Optima Network representation
+- [`CMLON`](lon.md#lonkit.lon.CMLON) - Compressed Monotonic LON
+- [`LONConfig`](lon.md#lonkit.lon.LONConfig) - Configuration for LON construction
 
 ### [Sampling Module](sampling.md)
 
 Basin-Hopping sampling for LON construction.
 
-- [`compute_lon()`](sampling.md#lonpy.sampling.compute_lon) - High-level convenience function
-- [`BasinHoppingSampler`](sampling.md#lonpy.sampling.BasinHoppingSampler) - Sampling class
-- [`BasinHoppingSamplerConfig`](sampling.md#lonpy.sampling.BasinHoppingSamplerConfig) - Configuration
+- [`compute_lon()`](sampling.md#lonkit.sampling.compute_lon) - High-level convenience function
+- [`BasinHoppingSampler`](sampling.md#lonkit.sampling.BasinHoppingSampler) - Sampling class
+- [`BasinHoppingSamplerConfig`](sampling.md#lonkit.sampling.BasinHoppingSamplerConfig) - Configuration
 
 ### [Visualization Module](visualization.md)
 
 Plotting and animation tools.
 
-- [`LONVisualizer`](visualization.md#lonpy.visualization.LONVisualizer) - Visualization class
+- [`LONVisualizer`](visualization.md#lonkit.visualization.LONVisualizer) - Visualization class
 
 ## Quick Reference
 
 ### Creating a LON
 
 ```python
-from lonpy import compute_lon, BasinHoppingSamplerConfig
+from lonkit import compute_lon, BasinHoppingSamplerConfig
 
 # Simple usage
 lon = compute_lon(
@@ -64,7 +64,7 @@ cmlon_metrics = cmlon.compute_metrics()
 ### Visualizing a LON
 
 ```python
-from lonpy import LONVisualizer
+from lonkit import LONVisualizer
 
 viz = LONVisualizer()
 

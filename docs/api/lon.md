@@ -1,6 +1,6 @@
 # LON Module
 
-::: lonpy.lon.LON
+::: lonkit.lon.LON
     options:
       show_root_heading: true
       show_source: true
@@ -15,7 +15,7 @@
         - compute_metrics
         - to_cmlon
 
-::: lonpy.lon.CMLON
+::: lonkit.lon.CMLON
     options:
       show_root_heading: true
       show_source: true
@@ -30,7 +30,7 @@
         - get_local_sinks
         - compute_metrics
 
-::: lonpy.lon.LONConfig
+::: lonkit.lon.LONConfig
     options:
       show_root_heading: true
       show_source: true

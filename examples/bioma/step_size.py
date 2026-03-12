@@ -1,6 +1,6 @@
 from problems import ackley4, griewank, schwefel2_26
 
-from lonpy import StepSizeEstimator, StepSizeEstimatorConfig
+from lonkit import StepSizeEstimator, StepSizeEstimatorConfig
 
 FUNCTIONS = {
     "Ackley 4": {

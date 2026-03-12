@@ -1,12 +1,12 @@
-from lonpy.lon import CMLON, LON, LONConfig
-from lonpy.sampling import (
+from lonkit.lon import CMLON, LON, LONConfig
+from lonkit.sampling import (
     BasinHoppingResult,
     BasinHoppingSampler,
     BasinHoppingSamplerConfig,
     compute_lon,
 )
-from lonpy.step_size import StepSizeEstimator, StepSizeEstimatorConfig, StepSizeResult
-from lonpy.visualization import LONVisualizer
+from lonkit.step_size import StepSizeEstimator, StepSizeEstimatorConfig, StepSizeResult
+from lonkit.visualization import LONVisualizer
 
 __version__ = "0.1.0"
 __all__ = [

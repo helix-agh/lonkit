@@ -1,10 +1,10 @@
-site_name: lonpy
+site_name: lonkit
 site_description: Local Optima Networks for Continuous Optimization
 site_author: HELIX AGH
-site_url: https://helix-agh.github.io/lonpy
+site_url: https://helix-agh.github.io/lonkit
 
-repo_name: helix-agh/lonpy
-repo_url: https://github.com/helix-agh/lonpy
+repo_name: helix-agh/lonkit
+repo_url: https://github.com/helix-agh/lonkit
 
 theme:
   name: material
@@ -95,8 +95,8 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/helix-agh/lonpy
+      link: https://github.com/helix-agh/lonkit
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/lonpy/
+      link: https://pypi.org/project/lonkit/
 
 copyright: Copyright &copy; 2025 AGH University of Kraków

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from lonpy import LON, LONVisualizer
+from lonkit import LON, LONVisualizer
 from tests.conftest import SEED
 
 

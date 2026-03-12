@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from lonpy import LON, BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import LON, BasinHoppingSampler, BasinHoppingSamplerConfig
 
 SEED = 42
 DOMAIN_2D = [(-5.0, 5.0), (-5.0, 5.0)]

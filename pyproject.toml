@@ -1,5 +1,5 @@
 [project]
-name = "lonpy"
+name = "lonkit"
 version = "0.1.0"
 description = "Local Optima Networks (LONs) for continuous optimization - Python implementation"
 readme = "README.md"
@@ -34,10 +34,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/lonpy"]
+packages = ["src/lonkit"]
 
 [tool.hatch.build]
-artifacts = ["src/lonpy/py.typed"]
+artifacts = ["src/lonkit/py.typed"]
 
 [tool.ruff]
 line-length = 100
@@ -67,7 +67,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["lonpy"]
+known-first-party = ["lonkit"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG"]

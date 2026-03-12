@@ -2,14 +2,14 @@
 
 ## Requirements
 
-lonpy requires Python 3.10 or higher.
+lonkit requires Python 3.10 or higher.
 
 ## Install from PyPI
 
-The simplest way to install lonpy is via pip:
+The simplest way to install lonkit is via pip:
 
 ```bash
-pip install lonpy
+pip install lonkit
 ```
 
 ## Install from Source
@@ -17,18 +17,18 @@ pip install lonpy
 For the latest development version:
 
 ```bash
-git clone https://github.com/helix-agh/lonpy.git
-cd lonpy
+git clone https://github.com/helix-agh/lonkit.git
+cd lonkit
 pip install -e .
 ```
 
 ## Development Installation
 
-To install lonpy with development dependencies for contributing:
+To install lonkit with development dependencies for contributing:
 
 ```bash
-git clone https://github.com/helix-agh/lonpy.git
-cd lonpy
+git clone https://github.com/helix-agh/lonkit.git
+cd lonkit
 pip install -e ".[dev]"
 ```
 
@@ -45,8 +45,8 @@ This includes:
 After installation, verify everything works:
 
 ```python
-import lonpy
-print(lonpy.__version__)
+import lonkit
+print(lonkit.__version__)
 ```
 
 You should see the version number (e.g., `0.1.0`).
@@ -61,14 +61,14 @@ On some systems, you may need to install igraph system dependencies first:
 
     ```bash
     sudo apt-get install build-essential python3-dev libxml2-dev zlib1g-dev
-    pip install lonpy
+    pip install lonkit
     ```
 
 === "macOS"
 
     ```bash
     brew install igraph
-    pip install lonpy
+    pip install lonkit
     ```
 
 === "Windows"

@@ -1,6 +1,6 @@
 # Core Concepts
 
-This page explains the key concepts behind Local Optima Networks and how lonpy implements them.
+This page explains the key concepts behind Local Optima Networks and how lonkit implements them.
 
 ## Fitness Landscapes
 
@@ -42,7 +42,7 @@ This creates a trajectory through the space of local optima:
 Local Opt A → (perturb) → Local Opt B → (perturb) → Local Opt C → ...
 ```
 
-lonpy records these transitions to build the LON.
+lonkit records these transitions to build the LON.
 
 ## Local Optima Networks
 
@@ -54,7 +54,7 @@ A **Local Optima Network (LON)** is a directed graph where:
 
 ### LON Construction
 
-lonpy constructs LONs by:
+lonkit constructs LONs by:
 
 1. Running multiple Basin-Hopping searches
 2. Recording every accepted transition, where only non-worsening moves are accepted, so all LON edges are improving or equal (source optimum → target optimum)
@@ -81,7 +81,7 @@ Two solutions are considered the same local optimum if their coordinates match a
 
 ## LON Metrics
 
-lonpy computes several metrics to characterize fitness landscapes:
+lonkit computes several metrics to characterize fitness landscapes:
 
 | Metric | Description | Interpretation |
 |--------|-------------|----------------|

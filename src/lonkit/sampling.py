@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from lonpy.lon import LON, LONConfig
+from lonkit.lon import LON, LONConfig
 
 StepMode = Literal["percentage", "fixed"]
 
