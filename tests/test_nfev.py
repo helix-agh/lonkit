@@ -1,6 +1,6 @@
 import pytest
 
-from lonpy import BasinHoppingSampler
+from lonkit import BasinHoppingSampler
 from tests.conftest import DEFAULT_CONFIG, DOMAIN_2D, griewank, rastrigin, sphere
 
 

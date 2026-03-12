@@ -18,7 +18,7 @@
         - sample
         - sample_to_lon
 
-::: lonpy.sampling.BasinHoppingResult
+::: lonkit.sampling.BasinHoppingResult
     options:
       show_root_heading: true
       show_source: true
