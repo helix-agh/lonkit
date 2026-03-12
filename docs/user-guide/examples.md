@@ -188,7 +188,8 @@ def progress(run, total):
     if run % 10 == 0:
         print(f"Progress: {run}/{total}")
 
-lon = sampler.sample_to_lon(schwefel, domain, progress_callback=progress)
+result = sampler.sample(schwefel, domain, progress_callback=progress)
+lon = sampler.sample_to_lon(result)
 
 # Analyze
 print(f"\nFound {lon.n_vertices} local optima")

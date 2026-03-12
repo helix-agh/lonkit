@@ -39,7 +39,8 @@ config = BasinHoppingSamplerConfig(
 )
 
 sampler = BasinHoppingSampler(config)
-lon = sampler.sample_to_lon(my_objective, domain)
+result = sampler.sample(my_objective, domain)
+lon = sampler.sample_to_lon(result)
 ```
 
 ## Parameters Explained
@@ -165,7 +166,8 @@ lon_config = LONConfig(
 
 config = BasinHoppingSamplerConfig(n_runs=30, seed=42)
 sampler = BasinHoppingSampler(config)
-lon = sampler.sample_to_lon(my_objective, domain, lon_config=lon_config)
+result = sampler.sample(my_objective, domain)
+lon = sampler.sample_to_lon(result, lon_config=lon_config)
 ```
 
 ### Fitness Aggregation Strategies
@@ -228,7 +230,8 @@ lon = compute_lon(
 
 # Or with BasinHoppingSampler
 sampler = BasinHoppingSampler(config)
-lon = sampler.sample_to_lon(my_objective, domain, initial_points=initial_points)
+result = sampler.sample(my_objective, domain, initial_points=initial_points)
+lon = sampler.sample_to_lon(result)
 ```
 
 **Requirements:**
@@ -251,7 +254,8 @@ domain = [
     (-1.0, 1.0)     # x3
 ]
 sampler = BasinHoppingSampler()
-lon = sampler.sample_to_lon(func, domain)
+result = sampler.sample(func, domain)
+lon = sampler.sample_to_lon(result)
 ```
 
 ## Accessing Raw Data
@@ -282,7 +286,8 @@ def progress(run, total):
     print(f"Run {run}/{total}")
 
 sampler = BasinHoppingSampler(config)
-lon = sampler.sample_to_lon(func, domain, progress_callback=progress)
+result = sampler.sample(func, domain, progress_callback=progress)
+lon = sampler.sample_to_lon(result)
 ```
 
 ## Best Practices

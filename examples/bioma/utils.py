@@ -55,10 +55,8 @@ def build_cmlon(
     )
 
     sampler = BasinHoppingSampler(config)
-    lon = sampler.sample_to_lon(
-        func_cfg.func,
-        domain,
-    )
+    result = sampler.sample(func_cfg.func, domain)
+    lon = sampler.sample_to_lon(result)
     return lon.to_cmlon()
 
 
