@@ -111,12 +111,12 @@ class BasinHoppingSampler:
 
     def __init__(self, config: BasinHoppingSamplerConfig | None = None):
         self.config = config or BasinHoppingSamplerConfig()
-        self._rng = np.random.default_rng(self.config.seed)
 
     def _perturbation(
         self,
         x: np.ndarray,
         p: np.ndarray,
+        rng: np.random.Generator,
         bounds: np.ndarray | None = None,
     ) -> np.ndarray:
         """
@@ -125,12 +125,13 @@ class BasinHoppingSampler:
         Args:
             x: Current solution coordinates.
             p: Per-dimension perturbation magnitude.
+            rng: Random number generator for the perturbation.
             bounds: Optional (n_var, 2) array of domain bounds for clipping.
 
         Returns:
             Perturbed solution, clipped to bounds if ``bounded`` is enabled.
         """
-        y = x + self._rng.uniform(low=-p, high=p)
+        y = x + rng.uniform(low=-p, high=p)
         if self.config.bounded and bounds is not None:
             return np.clip(y, bounds[:, 0], bounds[:, 1])
         return y
@@ -173,20 +174,17 @@ class BasinHoppingSampler:
 
         return hash_str
 
-    def _run_single(
+    def _single_bh_run(
         self,
         run: int,
         func: Callable[[np.ndarray], float],
         initial_point: np.ndarray,
         p: np.ndarray,
         bounds_array: np.ndarray | None,
+        rng: np.random.Generator,
     ) -> tuple[list[dict], int]:
         """
         Execute a single Basin-Hopping run.
-
-        Uses ``self._rng`` for perturbation randomness; the caller is responsible
-        for setting ``self._rng`` to the appropriate per-run generator before
-        calling this method.
 
         Args:
             run: 1-based run index (recorded in every raw record).
@@ -194,6 +192,7 @@ class BasinHoppingSampler:
             initial_point: Starting point for this run.
             p: Per-dimension perturbation magnitude.
             bounds_array: (n_var, 2) bounds array, or ``None`` if unbounded.
+            rng: Random number generator for perturbations in this run.
 
         Returns:
             Tuple of (records, nfev) for this run.
@@ -233,7 +232,7 @@ class BasinHoppingSampler:
             ):
                 break
 
-            x_perturbed = self._perturbation(current_x, p, bounds_array)
+            x_perturbed = self._perturbation(current_x, p, rng, bounds_array)
             try:
                 res = minimize(
                     func,
@@ -305,8 +304,8 @@ class BasinHoppingSampler:
         for run in run_iter:
             if progress_callback:
                 progress_callback(run, self.config.n_runs)
-            self._rng = np.random.default_rng(run_seeds[run - 1])
-            records, nfev = self._run_single(run, func, initial_points[run - 1], p, bounds_array)
+            rng = np.random.default_rng(run_seeds[run - 1])
+            records, nfev = self._single_bh_run(run, func, initial_points[run - 1], p, bounds_array, rng)
             raw_records.extend(records)
             nfev_total += nfev
 
@@ -329,11 +328,11 @@ class BasinHoppingSampler:
         parallel_runner = joblib.Parallel(  # type: ignore[assignment]
             n_jobs=effective_n_jobs,
             prefer="processes",
-            return_as="generator",
+            return_as="unordered_generator",
         )
 
         parallel_results = parallel_runner(
-            joblib.delayed(_single_bh_run_instance)(
+            joblib.delayed(_run_single_bh_in_worker)(
                 run + 1,
                 func,
                 initial_points[run],
@@ -481,7 +480,8 @@ class BasinHoppingSampler:
         domain_array = np.array(domain)
 
         if initial_points is None:
-            return self._rng.uniform(domain_array[:, 0], domain_array[:, 1], size=(n_runs, n_var))
+            rng = np.random.default_rng(self.config.seed)
+            return rng.uniform(domain_array[:, 0], domain_array[:, 1], size=(n_runs, n_var))
 
         initial_points = np.asarray(initial_points, dtype=float)
 
@@ -579,7 +579,7 @@ class BasinHoppingSampler:
         return LON.from_trace_data(trace_df, config=_lon_config)
 
 
-def _single_bh_run_instance(
+def _run_single_bh_in_worker(
     run: int,
     func: Callable[[np.ndarray], float],
     initial_point: np.ndarray,
@@ -593,8 +593,8 @@ def _single_bh_run_instance(
 
     Defined at module level (not as a method) so that it is picklable by
     joblib's ``loky`` multiprocessing backend.  Creates a temporary
-    ``BasinHoppingSampler`` with an RNG seeded from ``seed`` and delegates
-    to ``_run_single``.
+    ``BasinHoppingSampler`` and an RNG seeded from ``seed``, then delegates
+    to ``_single_bh_run``.
 
     Args:
         run: 1-based run index.
@@ -609,8 +609,8 @@ def _single_bh_run_instance(
         Tuple of (records, nfev) for this run.
     """
     sampler = BasinHoppingSampler(config)
-    sampler._rng = np.random.default_rng(seed)
-    return sampler._run_single(run, func, initial_point, p, bounds_array)
+    rng = np.random.default_rng(seed)
+    return sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
 
 
 def compute_lon(
