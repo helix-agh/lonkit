@@ -296,6 +296,9 @@ class BasinHoppingSampler:
         progress_callback: Callable[[int, int], None] | None = None,
         verbose: bool = False,
     ) -> tuple[list[dict], int]:
+        """
+        Executes BasinHopping runs in sequence, as if joblib was not present.
+        """
         raw_records: list[dict] = []
         nfev_total = 0
 
@@ -305,7 +308,9 @@ class BasinHoppingSampler:
             if progress_callback:
                 progress_callback(run, self.config.n_runs)
             rng = np.random.default_rng(run_seeds[run - 1])
-            records, nfev = self._single_bh_run(run, func, initial_points[run - 1], p, bounds_array, rng)
+            records, nfev = self._single_bh_run(
+                run, func, initial_points[run - 1], p, bounds_array, rng
+            )
             raw_records.extend(records)
             nfev_total += nfev
 
@@ -322,13 +327,16 @@ class BasinHoppingSampler:
         progress_callback: Callable[[int, int], None] | None = None,
         verbose: bool = False,
     ) -> tuple[list[dict], int]:
-        # Each run is dispatched to a separate worker process.
-        # return_as="generator" yields results in submission order so that the
-        # progress callback fires incrementally in the main process.
+        """
+        Executes BasinHopping runs in parallel using joblib.
+
+        At the moment, the parallelizaiton uses "generator_unordered" setting,
+        which makes the order of the completion and callback function calls non-deterministic.
+        """
         parallel_runner = joblib.Parallel(  # type: ignore[assignment]
             n_jobs=effective_n_jobs,
             prefer="processes",
-            return_as="unordered_generator",
+            return_as="generator_unordered",
         )
 
         parallel_results = parallel_runner(
@@ -346,7 +354,9 @@ class BasinHoppingSampler:
 
         raw_records: list[dict] = []
         nfev_total = 0
-        result_iter = tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
+        result_iter = (
+            tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
+        )
         for i, (records, nfev) in enumerate(result_iter, 1):  # type: ignore[union-attr]
             if progress_callback:
                 progress_callback(i, self.config.n_runs)
@@ -401,8 +411,7 @@ class BasinHoppingSampler:
         # and reproducibility across different n_jobs values.
         run_seeds = np.random.SeedSequence(self.config.seed).spawn(self.config.n_runs)
 
-        # n_jobs=None is treated as 1 by joblib, but the type stub only accepts int.
-        effective_n_jobs = joblib.effective_n_jobs(self.config.n_jobs)  # type: ignore[arg-type]
+        effective_n_jobs = joblib.effective_n_jobs(self.config.n_jobs)
 
         if effective_n_jobs == 1:
             return self._sequential_bh(
