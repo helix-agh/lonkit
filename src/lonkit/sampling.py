@@ -43,12 +43,13 @@ class BasinHoppingSamplerConfig:
             ``minimizer_method``. Use ``None`` to rely on scipy's defaults.
             Default: `None`.
         seed: Random seed for reproducibility. Default: `None`.
-        n_jobs: Number of parallel jobs for independent runs. Follows the scikit-learn
-            ``n_jobs`` convention: ``1`` runs sequentially; ``-1`` uses all available
-            CPUs; ``N > 1`` uses exactly N processes; ``-N`` uses
-            ``max(1, cpu_count - N + 1)`` processes; ``None`` is treated as ``1``.
-            Reproducibility is guaranteed across different ``n_jobs`` values when
-            ``seed`` is set. Default: ``1``.
+        n_jobs: The maximum number of concurrently running ``joblib`` jobs:
+        - ``1`` runs sequentially,
+        - ``-1`` uses all available CPUs;
+        - ``N > 1`` uses maximum of N processes;
+        - ``-N`` uses maximum of ``max(1, cpu_count - N + 1)`` processes;
+        - ``None`` is treated as ``1``.
+        Reproducibility is guaranteed across different ``n_jobs`` values when ``seed`` is set. Default: ``1``.
     """
 
     n_runs: int = 100
