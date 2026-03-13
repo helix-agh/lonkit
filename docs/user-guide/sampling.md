@@ -50,7 +50,7 @@ lon = sampler.sample_to_lon(result)
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `n_runs` | 100 | Number of independent Basin-Hopping runs |
-| `n_iter_no_change` | 1000 | Max consecutive non-improving perturbations before stopping each run. At least one of `n_iter_no_change` or `max_iter` must be set. |
+| `n_iter_no_change` | 250 | Max consecutive non-improving perturbations before stopping each run. At least one of `n_iter_no_change` or `max_iter` must be set. |
 | `max_iter` | None | Max total perturbation steps per run. Use together with `n_iter_no_change` or alone. |
 | `seed` | None | Random seed for reproducibility |
 
@@ -76,8 +76,8 @@ config = BasinHoppingSamplerConfig(n_runs=10, n_iter_no_change=None, max_iter=50
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `step_mode` | "fixed" | How to interpret step_size |
-| `step_size` | 0.01 | Perturbation magnitude |
+| `step_mode` | "percentage" | How to interpret step_size |
+| `step_size` | 0.1 | Perturbation magnitude |
 | `bounded` | True | Keep perturbations within domain |
 
 **Step modes:**
@@ -137,7 +137,7 @@ config = BasinHoppingSamplerConfig(fitness_precision=None)
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `minimizer_method` | "L-BFGS-B" | Scipy minimizer algorithm |
-| `minimizer_options` | `{"ftol": 1e-07, "gtol": 0, "maxiter": 15000}` | Minimizer options |
+| `minimizer_options` | `None` | Minimizer options |
 
 ```python
 # Custom minimizer settings
@@ -264,13 +264,13 @@ For custom analysis, access the raw trace data:
 
 ```python
 sampler = BasinHoppingSampler(config)
-trace_df, raw_records = sampler.sample(func, domain)
+result = sampler.sample(func, domain)
 
 # trace_df columns: [run, fit1, node1, fit2, node2]
-print(trace_df.head())
+print(result.trace_df.head())
 
 # raw_records contains detailed iteration data
-for record in raw_records[:5]:
+for record in result.raw_records[:5]:
     print(f"Run {record['run']}, Iter {record['iteration']}")
     print(f"  Current: {record['current_f']:.4f}")
     print(f"  New: {record['new_f']:.4f}")
