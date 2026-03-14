@@ -5,6 +5,7 @@ from lonkit.continuous.sampling import (
     compute_lon,
 )
 from lonkit.continuous.step_size import StepSizeEstimator, StepSizeEstimatorConfig, StepSizeResult
+from lonkit.discrete.problems import BitstringProblem, DiscreteProblem, NumberPartitioning, OneMax
 from lonkit.lon import CMLON, LON, LONConfig
 from lonkit.visualization import LONVisualizer
 
@@ -15,8 +16,12 @@ __all__ = [
     "BasinHoppingResult",
     "BasinHoppingSampler",
     "BasinHoppingSamplerConfig",
+    "BitstringProblem",
+    "DiscreteProblem",
     "LONConfig",
     "LONVisualizer",
+    "NumberPartitioning",
+    "OneMax",
     "StepSizeEstimator",
     "StepSizeEstimatorConfig",
     "StepSizeResult",
