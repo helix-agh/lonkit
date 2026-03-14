@@ -13,7 +13,7 @@ Initial public release of `lonkit`, a Python library for constructing, analyzing
   - bounded search domains,
   - custom `scipy.optimize.minimize` methods and options,
   - optional user-supplied initial points.
-- Added `LON` and `CMLON` graph models built on `python-igraph`.
+- Added `LON` and `CMLON` graph models built on `igraph` (Python bindings for igraph).
 - Added landscape analysis metrics.
 - Added `StepSizeEstimator` for estimating Basin-Hopping step sizes from a target escape rate.
 - Added visualization tools for:
