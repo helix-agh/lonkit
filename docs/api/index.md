@@ -16,6 +16,7 @@ Data structures for Local Optima Networks.
 
 ### [Continuous Sampling Module](sampling.md)
 
+Basin-Hopping sampling for continuous LON construction.
 
 - [`compute_lon()`](sampling.md#lonkit.continuous.sampling.compute_lon) - High-level convenience function
 - [`BasinHoppingSampler`](sampling.md#lonkit.continuous.sampling.BasinHoppingSampler) - Sampling class
