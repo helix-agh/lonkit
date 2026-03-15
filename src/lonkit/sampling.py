@@ -298,7 +298,9 @@ class BasinHoppingSampler:
         verbose: bool = False,
     ) -> tuple[list[dict], int]:
         """
-        Executes BasinHopping runs in sequence, as if joblib was not present.
+        Executes set of ``_single_bh_run`` calls in sequence, without using ``joblib``.
+
+        Used when ``joblib.effective_n_jobs`` equals ``1``.
         """
         raw_records: list[dict] = []
         nfev_total = 0
@@ -329,12 +331,18 @@ class BasinHoppingSampler:
         verbose: bool = False,
     ) -> tuple[list[dict], int]:
         """
-        Executes BasinHopping runs in parallel using joblib.
+        Executes set of ``_single_bh_run`` calls in parallel in using ``joblib``.
 
-        At the moment, the parallelizaiton uses "generator_unordered" setting,
+        At the moment, the the joblib runner uses "generator_unordered" setting,
         which makes the order of the completion and callback function calls non-deterministic.
+        This does not affect the ``LON`` creation, as the order of the iterations within the run
+        remains the same in the resulting array, allowing for stable sorting by run later.
+
+        The ``joblib.Parallel`` runner needs to use the ``_run_single_bh_in_worker`` method, because
+        of pickling - the pickled objects cannot share the same memory to achieve true parallelism between the
+        procceses, so we need to create separate ``BasinHoppingSampler`` object for each run.
         """
-        parallel_runner = joblib.Parallel(  # type: ignore[assignment]
+        parallel_runner = joblib.Parallel(
             n_jobs=effective_n_jobs,
             prefer="processes",
             return_as="generator_unordered",
@@ -358,7 +366,7 @@ class BasinHoppingSampler:
         result_iter = (
             tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
         )
-        for i, (records, nfev) in enumerate(result_iter, 1):  # type: ignore[union-attr]
+        for i, (records, nfev) in enumerate(result_iter, 1):
             if progress_callback:
                 progress_callback(i, self.config.n_runs)
             raw_records.extend(records)
@@ -438,7 +446,8 @@ class BasinHoppingSampler:
 
     def _construct_trace_data(self, raw_records: list[dict]) -> pd.DataFrame:
         """
-        Construct trace data from accepted transitions in raw records.
+        Construct trace data from accepted transitions in raw records. The returned
+        trace Dataframe is sorted by run.
 
         Args:
             raw_records: List of raw sampling records from basin hopping.
@@ -478,6 +487,7 @@ class BasinHoppingSampler:
             )
 
         trace_df = pd.DataFrame(trace_records, columns=["run", "fit1", "node1", "fit2", "node2"])
+        trace_df = trace_df.sort_values(by=["run"]).reset_index(drop=True)
         return trace_df
 
     def _resolve_initial_points(

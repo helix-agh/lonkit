@@ -66,10 +66,7 @@ class TestParallelReproducibility:
         result_seq = _run(SEED, n_jobs=1)
         result_par = _run(SEED, n_jobs=-1)
 
-        trace_seq = result_seq.trace_df.sort_values(by=["run"]).reset_index(drop=True)
-        trace_par = result_par.trace_df.sort_values(by=["run"]).reset_index(drop=True)
-
-        pd.testing.assert_frame_equal(trace_seq, trace_par)
+        pd.testing.assert_frame_equal(result_seq.trace_df, result_par.trace_df)
 
     @pytest.mark.parametrize("n_jobs", [2, -1, None])
     def test_n_jobs_variants_match_sequential(self, n_jobs: int | None) -> None:
@@ -78,10 +75,7 @@ class TestParallelReproducibility:
         result_other = _run(SEED, n_jobs=n_jobs)
         assert result_seq.nfev == result_other.nfev
 
-        trace_seq = result_seq.trace_df.sort_values(by=["run"]).reset_index(drop=True)
-        trace_other = result_other.trace_df.sort_values(by=["run"]).reset_index(drop=True)
-
-        pd.testing.assert_frame_equal(trace_seq, trace_other)
+        pd.testing.assert_frame_equal(result_seq.trace_df, result_other.trace_df)
 
     @pytest.mark.parametrize("func", [sphere, rastrigin, griewank])
     def test_reproducibility_across_functions(self, func) -> None:
