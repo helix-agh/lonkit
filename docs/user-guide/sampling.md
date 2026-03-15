@@ -102,6 +102,8 @@ config = BasinHoppingSamplerConfig(
 - Too large: Jumps randomly, misses local structure
 - Good starting point: 5-10% of domain range
 
+> **Tip:** Use `StepSizeEstimator` to automatically find the optimal step size for your problem. See the [API Reference](../api/step_size.md) for details.
+
 ### Precision Settings
 
 | Parameter | Default | Description |

@@ -99,7 +99,8 @@ sampler = BasinHoppingSampler(config)
 domain = [(-5.12, 5.12), (-5.12, 5.12)]
 
 # Run sampling
-lon = sampler.sample_to_lon(rastrigin, domain)
+result = sampler.sample(rastrigin, domain)
+lon = sampler.sample_to_lon(result)
 ```
 
 ## Documentation

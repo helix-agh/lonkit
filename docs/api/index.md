@@ -28,6 +28,14 @@ Plotting and animation tools.
 
 - [`LONVisualizer`](visualization.md#lonkit.visualization.LONVisualizer) - Visualization class
 
+### [Step Size Module](step_size.md)
+
+Tools for estimating optimal Basin-Hopping step sizes.
+
+- [`StepSizeEstimator`](step_size.md#lonkit.step_size.StepSizeEstimator) - Step size estimation
+- [`StepSizeEstimatorConfig`](step_size.md#lonkit.step_size.StepSizeEstimatorConfig) - Configuration
+- [`StepSizeResult`](step_size.md#lonkit.step_size.StepSizeResult) - Estimation result
+
 ## Quick Reference
 
 ### Creating a LON
