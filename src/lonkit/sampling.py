@@ -641,6 +641,7 @@ def compute_lon(
     initial_points: np.ndarray | None = None,
     config: BasinHoppingSamplerConfig | None = None,
     lon_config: LONConfig | None = None,
+    verbose: bool = False,
 ) -> LON:
     """
     Compute a LON from an objective function.
@@ -682,5 +683,5 @@ def compute_lon(
     domain = list(zip(lower_bounds, upper_bounds, strict=True))
 
     sampler = BasinHoppingSampler(config)
-    result = sampler.sample(func, domain, initial_points=initial_points)
+    result = sampler.sample(func, domain, initial_points=initial_points, verbose=verbose)
     return sampler.sample_to_lon(result, lon_config=lon_config)
