@@ -10,7 +10,7 @@ from lonkit.discrete.sampling import ILSResult, ILSSampler, ILSSamplerConfig
 from lonkit.lon import CMLON, LON, LONConfig
 from lonkit.visualization import LONVisualizer
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "CMLON",
     "LON",
