@@ -6,13 +6,14 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Ujl48ffgHg9ck1Hueh59s65OR3Q3BG99?usp=sharing)
 
-**Local Optima Networks for Continuous Optimization**
+**Local Optima Networks**
 
-lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
+lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for both continuous and discrete optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
 
 ## Features
 
-- **Basin-Hopping Sampling**: Efficient exploration of fitness landscapes using configurable Basin-Hopping
+- **Basin-Hopping Sampling**: Efficient exploration of continuous fitness landscapes using configurable Basin-Hopping
+- **Iterated Local Search**: Discrete LON construction via ILS with built-in problems (Number Partitioning, OneMax)
 - **LON Construction**: Automatic construction of Local Optima Networks from sampling data
 - **CMLON Support**: Compressed Monotonic LONs for cleaner landscape analysis
 - **Rich Metrics**: Compute landscape metrics including funnel analysis and neutrality
@@ -101,6 +102,40 @@ domain = [(-5.12, 5.12), (-5.12, 5.12)]
 # Run sampling
 lon = sampler.sample_to_lon(rastrigin, domain)
 ```
+
+## Discrete Optimization Problems
+
+lonkit also supports Local Optima Networks for discrete optimization problems using Iterated Local Search (ILS).
+
+### Quick Start (Discrete)
+
+```python
+from lonkit import NumberPartitioning, ILSSampler, ILSSamplerConfig, LONVisualizer
+
+# Define problem instance
+problem = NumberPartitioning(n=20, k=0.5, instance_seed=1)
+
+# Configure and run ILS sampling
+config = ILSSamplerConfig(n_runs=50, n_iter_no_change=100, seed=42)
+sampler = ILSSampler(config)
+result = sampler.sample(problem)
+
+# Build LON and CMLON
+lon = sampler.sample_to_lon(result)
+cmlon = lon.to_cmlon()
+
+# Compute metrics
+print(lon.compute_metrics())
+print(cmlon.compute_metrics())
+
+# Visualize
+viz = LONVisualizer()
+viz.plot_2d(cmlon, output_path="npp_cmlon.png")
+```
+
+### Custom Discrete Problems
+
+You can define your own discrete problem by subclassing `DiscreteProblem`. For bitstring problems, inherit from `BitstringProblem` instead it provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box. You only need to implement `evaluate()`.
 
 ## Documentation
 
