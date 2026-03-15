@@ -1,16 +1,35 @@
-# Continuous Sampling Module
+# Discrete Module
 
-::: lonkit.continuous.sampling.compute_lon
+## Problems
+
+::: lonkit.discrete.problems.problem.DiscreteProblem
     options:
       show_root_heading: true
       show_source: true
 
-::: lonkit.continuous.sampling.BasinHoppingSamplerConfig
+::: lonkit.discrete.problems.bitstring.BitstringProblem
     options:
       show_root_heading: true
       show_source: true
 
-::: lonkit.continuous.sampling.BasinHoppingSampler
+::: lonkit.discrete.problems.bitstring.NumberPartitioning
+    options:
+      show_root_heading: true
+      show_source: true
+
+::: lonkit.discrete.problems.bitstring.OneMax
+    options:
+      show_root_heading: true
+      show_source: true
+
+## Sampling
+
+::: lonkit.discrete.sampling.ILSSamplerConfig
+    options:
+      show_root_heading: true
+      show_source: true
+
+::: lonkit.discrete.sampling.ILSSampler
     options:
       show_root_heading: true
       show_source: true
@@ -18,24 +37,7 @@
         - sample
         - sample_to_lon
 
-::: lonkit.continuous.sampling.BasinHoppingResult
-    options:
-      show_root_heading: true
-      show_source: true
-
-## Step Size Estimation
-
-::: lonkit.continuous.step_size.StepSizeEstimatorConfig
-    options:
-      show_root_heading: true
-      show_source: true
-
-::: lonkit.continuous.step_size.StepSizeEstimator
-    options:
-      show_root_heading: true
-      show_source: true
-
-::: lonkit.continuous.step_size.StepSizeResult
+::: lonkit.discrete.sampling.ILSResult
     options:
       show_root_heading: true
       show_source: true

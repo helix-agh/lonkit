@@ -4,7 +4,7 @@ Complete API documentation for lonkit.
 
 ## Modules
 
-lonkit is organized into three main modules:
+lonkit is organized into the following modules:
 
 ### [LON Module](lon.md)
 
@@ -14,13 +14,27 @@ Data structures for Local Optima Networks.
 - [`CMLON`](lon.md#lonkit.lon.CMLON) - Compressed Monotonic LON
 - [`LONConfig`](lon.md#lonkit.lon.LONConfig) - Configuration for LON construction
 
-### [Sampling Module](sampling.md)
+### [Continuous Sampling Module](sampling.md)
 
-Basin-Hopping sampling for LON construction.
+Basin-Hopping sampling for continuous LON construction.
 
-- [`compute_lon()`](sampling.md#lonkit.sampling.compute_lon) - High-level convenience function
-- [`BasinHoppingSampler`](sampling.md#lonkit.sampling.BasinHoppingSampler) - Sampling class
-- [`BasinHoppingSamplerConfig`](sampling.md#lonkit.sampling.BasinHoppingSamplerConfig) - Configuration
+- [`compute_lon()`](sampling.md#lonkit.continuous.sampling.compute_lon) - High-level convenience function
+- [`BasinHoppingSampler`](sampling.md#lonkit.continuous.sampling.BasinHoppingSampler) - Sampling class
+- [`BasinHoppingSamplerConfig`](sampling.md#lonkit.continuous.sampling.BasinHoppingSamplerConfig) - Configuration
+- [`BasinHoppingResult`](sampling.md#lonkit.continuous.sampling.BasinHoppingResult) - Sampling result container
+- [`StepSizeEstimator`](sampling.md#lonkit.continuous.step_size.StepSizeEstimator) - Step size estimation
+- [`StepSizeEstimatorConfig`](sampling.md#lonkit.continuous.step_size.StepSizeEstimatorConfig) - Step size estimator configuration
+
+### [Discrete Module](discrete.md)
+
+Iterated Local Search sampling and built-in discrete problems.
+
+- [`DiscreteProblem`](discrete.md#lonkit.discrete.problems.problem.DiscreteProblem) - Abstract base for discrete problems
+- [`BitstringProblem`](discrete.md#lonkit.discrete.problems.bitstring.BitstringProblem) - Base class for bitstring problems
+- [`NumberPartitioning`](discrete.md#lonkit.discrete.problems.bitstring.NumberPartitioning) - Number Partitioning Problem
+- [`OneMax`](discrete.md#lonkit.discrete.problems.bitstring.OneMax) - OneMax benchmark
+- [`ILSSampler`](discrete.md#lonkit.discrete.sampling.ILSSampler) - ILS sampling class
+- [`ILSSamplerConfig`](discrete.md#lonkit.discrete.sampling.ILSSamplerConfig) - ILS configuration
 
 ### [Visualization Module](visualization.md)
 
