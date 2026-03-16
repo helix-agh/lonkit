@@ -308,12 +308,12 @@ class BasinHoppingSampler:
         runs = range(1, self.config.n_runs + 1)
         run_iter = tqdm(runs, total=self.config.n_runs) if verbose else runs
         for run in run_iter:
-            if progress_callback:
-                progress_callback(run, self.config.n_runs)
             rng = np.random.default_rng(run_seeds[run - 1])
             records, nfev = self._single_bh_run(
                 run, func, initial_points[run - 1], p, bounds_array, rng
             )
+            if progress_callback:
+                progress_callback(run, self.config.n_runs)
             raw_records.extend(records)
             nfev_total += nfev
 
@@ -366,9 +366,9 @@ class BasinHoppingSampler:
         result_iter = (
             tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
         )
-        for i, (records, nfev) in enumerate(result_iter, 1):
+        for _, (run, records, nfev) in enumerate(result_iter, 1):
             if progress_callback:
-                progress_callback(i, self.config.n_runs)
+                progress_callback(run, self.config.n_runs)
             raw_records.extend(records)
             nfev_total += nfev
 
@@ -396,7 +396,8 @@ class BasinHoppingSampler:
             domain: List of (lower, upper) bounds per dimension.
             initial_points: Array of shape (config.n_runs, n_var) with initial points.
             progress_callback: Optional callback(run, total_runs) for progress.
-                Always called from the main process, regardless of ``n_jobs``.
+                Called after each run completes. Always called from the main process,
+                regardless of ``n_jobs``.
 
         Returns:
             Tuple of (raw_records, nfev_total) where raw_records is a list of
@@ -546,7 +547,8 @@ class BasinHoppingSampler:
             initial_points: Optional array of shape (`config.n_runs`, `n_var`) with
                 starting points for each run. If `None`, points are sampled
                 uniformly at random from the domain. Default: `None`.
-            progress_callback: Optional callback(run, total_runs) for progress. Default: `None`.
+            progress_callback: Optional callback(run, total_runs) for progress.
+                Called after each run completes. Default: `None`.
             verbose: If True, print progress information. Default: `False`.
         Returns:
             BasinHoppingResult: Result of the sampling run.
@@ -607,7 +609,7 @@ def _run_single_bh_in_worker(
     bounds_array: np.ndarray | None,
     config: BasinHoppingSamplerConfig,
     seed: np.random.SeedSequence,
-) -> tuple[list[dict], int]:
+) -> tuple[int, list[dict], int]:
     """
     Module-level worker for a single Basin-Hopping run.
 
@@ -626,11 +628,12 @@ def _run_single_bh_in_worker(
         seed: ``SeedSequence`` child spawned for this run.
 
     Returns:
-        Tuple of (records, nfev) for this run.
+        Tuple of (run, records, nfev) for this run.
     """
     sampler = BasinHoppingSampler(config)
     rng = np.random.default_rng(seed)
-    return sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
+    records, nfev = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
+    return run, records, nfev
 
 
 def compute_lon(
