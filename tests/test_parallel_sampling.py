@@ -22,9 +22,9 @@ def _run(seed: int, n_jobs: int | None = 1, func=sphere):
 
 def _assert_raw_records_equal(seq_records: list[dict], par_records: list[dict]) -> None:
     """Assert that two raw-record lists are identical element by element."""
-    assert len(seq_records) == len(par_records), (
-        f"Record count differs: {len(seq_records)} (sequential) vs {len(par_records)} (parallel)"
-    )
+    assert len(seq_records) == len(
+        par_records
+    ), f"Record count differs: {len(seq_records)} (sequential) vs {len(par_records)} (parallel)"
 
     sorted_seq = sorted(seq_records, key=lambda x: x["run"])
     sorted_par = sorted(par_records, key=lambda x: x["run"])
