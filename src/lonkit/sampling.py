@@ -487,7 +487,7 @@ class BasinHoppingSampler:
             )
 
         trace_df = pd.DataFrame(trace_records, columns=["run", "fit1", "node1", "fit2", "node2"])
-        trace_df = trace_df.sort_values(by=["run"]).reset_index(drop=True)
+        trace_df = trace_df.sort_values(by=["run"], kind="mergesort").reset_index(drop=True)
         return trace_df
 
     def _resolve_initial_points(
