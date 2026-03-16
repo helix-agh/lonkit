@@ -331,16 +331,16 @@ class BasinHoppingSampler:
         verbose: bool = False,
     ) -> tuple[list[dict], int]:
         """
-        Executes set of ``_single_bh_run`` calls in parallel in using ``joblib``.
+        Executes set of ``_single_bh_run`` calls in parallel using ``joblib``.
 
-        At the moment, the the joblib runner uses "generator_unordered" setting,
+        At the moment, the joblib runner uses "generator_unordered" setting,
         which makes the order of the completion and callback function calls non-deterministic.
         This does not affect the ``LON`` creation, as the order of the iterations within the run
         remains the same in the resulting array, allowing for stable sorting by run later.
 
-        The ``joblib.Parallel`` runner needs to use the ``_run_single_bh_in_worker`` method, because
+        The ``joblib.Parallel`` runner needs to use the ``_run_single_bh_in_worker`` function, because
         of pickling - the pickled objects cannot share the same memory to achieve true parallelism between the
-        procceses, so we need to create separate ``BasinHoppingSampler`` object for each run.
+        processes, so we need to create separate ``BasinHoppingSampler`` object for each run.
         """
         parallel_runner = joblib.Parallel(
             n_jobs=effective_n_jobs,
@@ -447,7 +447,7 @@ class BasinHoppingSampler:
     def _construct_trace_data(self, raw_records: list[dict]) -> pd.DataFrame:
         """
         Construct trace data from accepted transitions in raw records. The returned
-        trace Dataframe is sorted by run.
+        trace DataFrame is sorted by run.
 
         Args:
             raw_records: List of raw sampling records from basin hopping.
