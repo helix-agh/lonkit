@@ -549,7 +549,7 @@ class BasinHoppingSampler:
                 uniformly at random from the domain. Default: `None`.
             progress_callback: Optional callback(run, total_runs) for progress.
                 Called after each run completes. Default: `None`.
-            verbose: If True, print progress information. Default: `False`.
+            verbose:  If True, show a progress bar during sampling. Default: `False`.
         Returns:
             BasinHoppingResult: Result of the sampling run.
         """
@@ -664,6 +664,7 @@ def compute_lon(
             BasinHoppingSamplerConfig if not provided.
         lon_config: LON construction configuration. Uses default
             LONConfig if not provided.
+        verbose: If True, show a progress bar during sampling. Default: `False`.
 
     Returns:
         LON instance.
