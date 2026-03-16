@@ -47,17 +47,28 @@ lon = sampler.sample_to_lon(result)
 
 ### Sampling Parameters
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `n_runs` | 100 | Number of independent Basin-Hopping runs |
-| `n_iter_no_change` | 250 | Max consecutive non-improving perturbations before stopping each run. At least one of `n_iter_no_change` or `max_iter` must be set. |
-| `max_iter` | None | Max total perturbation steps per run. Use together with `n_iter_no_change` or alone. |
-| `seed` | None | Random seed for reproducibility |
+| Parameter          | Default | Description                                                                                                                                                                                             |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `n_runs`           | 100     | Number of independent Basin-Hopping runs                                                                                                                                                                |
+| `n_iter_no_change` | 250     | Max consecutive non-improving perturbations before stopping each run. At least one of `n_iter_no_change` or `max_iter` must be set.                                                                     |
+| `max_iter`         | None    | Max total perturbation steps per run. Use together with `n_iter_no_change` or alone.                                                                                                                    |
+| `seed`             | None    | Random seed for reproducibility                                                                                                                                                                         |
+| `n_jobs`           | 1       | Number of parallel jobs. For interpretation, refer to the [joblib documentation](https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html#:~:text=Parameters%3A,int%2C%20default%3DNone). |
+
+**Parallelism and reproducibility:**
+
+- The behaviour of `n_jobs` parameter is in line with the one in [joblib documentation](https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html#:~:text=Parameters%3A,int%2C%20default%3DNone), that is:
+    - `1` runs sequentially,
+    - `-1` uses all available CPUs,
+    - `N > 1` uses maximum of `N` processes,
+    - `-N` uses maximum of `max(1, cpu_count - N + 1)`    processes,
+    - `None` is treated as `1`.
+- Setting `seed` guarantees **identical results** regardless of `n_jobs` value — each run receives a deterministic RNG seed derived from `SeedSequence(seed)`
 
 **Choosing `n_runs` and stopping criteria:**
 
 - More runs = better coverage of the landscape
-- `n_iter_no_change` counts *non-improving* consecutive steps - it is the primary stopping criterion per run
+- `n_iter_no_change` counts _non-improving_ consecutive steps - it is the primary stopping criterion per run
 - `max_iter` caps total steps regardless of improvement - useful to bound computation time
 - At least one of the two must be set; they can be combined
 
@@ -74,11 +85,11 @@ config = BasinHoppingSamplerConfig(n_runs=10, n_iter_no_change=None, max_iter=50
 
 ### Perturbation Settings
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `step_mode` | "percentage" | How to interpret step_size |
-| `step_size` | 0.1 | Perturbation magnitude |
-| `bounded` | True | Keep perturbations within domain |
+| Parameter   | Default      | Description                      |
+| ----------- | ------------ | -------------------------------- |
+| `step_mode` | "percentage" | How to interpret step_size       |
+| `step_size` | 0.1          | Perturbation magnitude           |
+| `bounded`   | True         | Keep perturbations within domain |
 
 **Step modes:**
 
@@ -106,10 +117,10 @@ config = BasinHoppingSamplerConfig(
 
 ### Precision Settings
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `coordinate_precision` | 5 | Decimal places for coordinate rounding and node identification (`None` = full double precision) |
-| `fitness_precision` | None | Decimal places for fitness values (`None` = full double precision) |
+| Parameter              | Default | Description                                                                                     |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| `coordinate_precision` | 5       | Decimal places for coordinate rounding and node identification (`None` = full double precision) |
+| `fitness_precision`    | None    | Decimal places for fitness values (`None` = full double precision)                              |
 
 **coordinate_precision** determines when two solutions are considered the same optimum:
 
@@ -136,10 +147,10 @@ config = BasinHoppingSamplerConfig(fitness_precision=None)
 
 ### Local Minimizer Settings
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `minimizer_method` | "L-BFGS-B" | Scipy minimizer algorithm |
-| `minimizer_options` | `None` | Minimizer options |
+| Parameter           | Default    | Description               |
+| ------------------- | ---------- | ------------------------- |
+| `minimizer_method`  | "L-BFGS-B" | Scipy minimizer algorithm |
+| `minimizer_options` | `None`     | Minimizer options         |
 
 ```python
 # Custom minimizer settings
@@ -174,12 +185,12 @@ lon = sampler.sample_to_lon(result, lon_config=lon_config)
 
 ### Fitness Aggregation Strategies
 
-| Strategy | Description |
-|----------|-------------|
-| `"min"` | Use minimum fitness (default) |
-| `"max"` | Use maximum fitness |
-| `"mean"` | Use average fitness |
-| `"first"` | Use first occurrence |
+| Strategy   | Description                        |
+| ---------- | ---------------------------------- |
+| `"min"`    | Use minimum fitness (default)      |
+| `"max"`    | Use maximum fitness                |
+| `"mean"`   | Use average fitness                |
+| `"first"`  | Use first occurrence               |
 | `"strict"` | Raise error if duplicates detected |
 
 ### Data Quality Checks
@@ -281,9 +292,13 @@ for record in result.raw_records[:5]:
 
 ## Progress Monitoring
 
-Track sampling progress with a callback:
+Track sampling progress with a callback or the `verbose` flag:
 
 ```python
+# Using verbose flag (prints progress bar)
+result = sampler.sample(func, domain, verbose=True)
+
+# Using a custom callback
 def progress(run, total):
     print(f"Run {run}/{total}")
 
