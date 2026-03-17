@@ -4,6 +4,33 @@ version = "0.1.0"
 description = "Local Optima Networks (LONs) for continuous optimization - Python implementation"
 readme = "README.md"
 requires-python = ">=3.10"
+keywords = [
+    "optimization",
+    "fitness-landscape",
+    "local-optima-networks",
+    "basin-hopping",
+    "evolutionary-algorithms",
+    "continuous-optimization",
+    "discrete-optimization",
+    "metaheuristics",
+    "fitness-landscape-analysis",
+    "visualization",
+    "mutli-dimensional"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "numpy>=1.24.0",
     "scipy>=1.10.0",
