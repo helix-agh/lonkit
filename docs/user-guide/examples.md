@@ -1,3 +1,7 @@
+---
+description: Complete examples demonstrating lonkit capabilities on benchmark optimization problems like Rastrigin, Ackley, and Sphere functions.
+---
+
 # Examples
 
 Complete examples demonstrating lonkit's capabilities.

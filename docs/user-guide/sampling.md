@@ -1,3 +1,7 @@
+---
+description: Configuration and usage of Basin-Hopping sampling for constructing Local Optima Networks. Perturbation, step size, and stopping conditions controls.
+---
+
 # Sampling Guide
 
 This guide covers how to configure Basin-Hopping sampling for LON construction.

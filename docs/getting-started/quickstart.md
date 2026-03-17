@@ -1,3 +1,7 @@
+---
+description: Getting started with lonkit. Basic API reference and guides on constructing, analyzing, and visualizing Local Optima Networks.
+---
+
 # Quick Start
 
 This guide will get you up and running with lonkit in just a few minutes.

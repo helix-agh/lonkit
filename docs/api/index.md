@@ -1,3 +1,7 @@
+---
+description: Complete API reference for lonkit. Documentation for LON, CMLON, BasinHoppingSampler, LONVisualizer, and configuration classes.
+---
+
 # API Reference
 
 Complete API documentation for lonkit.
