@@ -18,7 +18,7 @@ keywords = [
     "metaheuristics",
     "fitness-landscape-analysis",
     "visualization",
-    "mutli-dimensional"
+    "multi-dimensional"
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
