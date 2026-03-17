@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.0
+
+Second public release adding multiprocessing to Basin-Hopping sampling procedure.
+
+### Highlights
+
+- Added configurable parallel Basin-Hopping sampling execution via `joblib` with the new `n_jobs` configuration parameter.
+- Added optional progress reporting with `verbose=True` (powered by `tqdm`) in both `sample(...)` and `compute_lon(...)`.
+- The solution preserves reproducibility across sequential and parallel runs when `seed` is set.
+- Added dedicated parallel reproducibility tests (`tests/test_parallel_sampling.py`).
+
+### API and Behavior Changes
+
+- `BasinHoppingSampler.sample(...)` now emphasizes returning a `BasinHoppingResult` object (`trace_df`, `raw_records`, `nfev`) in examples and docs.
+- Internal sampling flow was refactored into explicit single-run, sequential, and parallel execution paths.
+
+### Documentation
+
+- Updated user guide pages for sampling and examples to cover `n_jobs`, reproducibility guarantees, and `verbose` progress display.
+- Added API documentation page for the step size module and linked it from the API index.
+
+### Dependencies
+
+- Added required runtime dependencies: `joblib>=1.3.0` and `tqdm>=4.67.3`.
+
 ## 0.1.0
 
 Initial public release of `lonkit`, a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous optimization problems.
