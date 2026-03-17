@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Local Optima Networks (LONs) for continuous optimization - Python implementation"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [{name = "HELIX AGH"}]
+license = {text = "MIT"}
+urls = {Homepage = "https://helix-agh.github.io/lonkit", Documentation = "https://helix-agh.github.io/lonkit", Repository = "https://github.com/helix-agh/lonkit", Issues = "https://github.com/helix-agh/lonkit/issues"}
 keywords = [
     "optimization",
     "fitness-landscape",
