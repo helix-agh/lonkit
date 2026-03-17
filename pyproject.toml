@@ -6,13 +6,6 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "HELIX AGH"}]
 license = {text = "MIT"}
-
-[project.urls]
-Homepage = "https://helix-agh.github.io/lonkit"
-Documentation = "https://helix-agh.github.io/lonkit"
-Repository = "https://github.com/helix-agh/lonkit"
-Issues = "https://github.com/helix-agh/lonkit/issues"
-
 keywords = [
     "optimization",
     "fitness-landscape",
@@ -40,6 +33,14 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
+[project.urls]
+Homepage = "https://helix-agh.github.io/lonkit"
+Documentation = "https://helix-agh.github.io/lonkit"
+Repository = "https://github.com/helix-agh/lonkit"
+Issues = "https://github.com/helix-agh/lonkit/issues"
+
+
 dependencies = [
     "numpy>=1.24.0",
     "scipy>=1.10.0",
