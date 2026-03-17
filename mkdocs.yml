@@ -8,6 +8,7 @@ repo_url: https://github.com/helix-agh/lonkit
 
 theme:
   name: material
+  custom_dir: docs/overrides
   palette:
     - scheme: default
       primary: indigo

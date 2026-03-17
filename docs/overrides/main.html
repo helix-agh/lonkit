@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "lonkit",
+  "description": "Local Optima Networks (LONs) for continuous optimization - Python library for constructing, analyzing, and visualizing fitness landscapes.",
+  "url": "https://helix-agh.github.io/lonkit",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Python 3.10+",
+  "programmingLanguage": "Python",
+  "license": "https://opensource.org/licenses/MIT",
+  "author": {
+    "@type": "Organization",
+    "name": "HELIX AGH",
+    "url": "https://github.com/helix-agh"
+  },
+  "downloadUrl": "https://pypi.org/project/lonkit/",
+  "softwareVersion": "0.1.0",
+  "keywords": "optimization, fitness landscape, local optima networks, basin hopping, evolutionary algorithms"
+}
+</script>
+{% endblock %}
