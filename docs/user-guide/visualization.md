@@ -1,3 +1,7 @@
+---
+description: 2D and 3D visualizations of Local Optima Networks. Export plots as PNG, generate animated GIFs, and customize visual styling.
+---
+
 # Visualization Guide
 
 This guide covers how to create visualizations of Local Optima Networks.

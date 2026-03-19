@@ -1,3 +1,7 @@
+---
+description: Description of Local Optima Networks, fitness landscapes, basin hopping, and CMLONs. Core concepts for optimization analysis.
+---
+
 # Core Concepts
 
 This page explains the key concepts behind Local Optima Networks and how lonkit implements them.
