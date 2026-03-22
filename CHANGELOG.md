@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0
+
+Third public release adding support for discrete optimization problems via Iterated Local Search (ILS).
+
+### Highlights
+
+- Added a discrete optimization framework with `DiscreteProblem` abstract base class — a generic, stateless interface for defining custom discrete problems.
+- Added `BitstringProblem` base class providing out-of-the-box `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` for binary-encoded problems, with configurable first-improvement (stochastic) and best-improvement (deterministic) hill climbing.
+- Added built-in problem implementations:
+  - `NumberPartitioning`: Number Partitioning Problem with configurable hardness parameter `k`, random instance generation via `instance_seed`, or explicit weights.
+  - `OneMax`: Simple maximization benchmark with O(1) delta evaluation.
+- Added `ILSSampler` and `ILSSamplerConfig` for constructing LONs from discrete problems via Iterated Local Search, with configurable stopping criteria (`n_iter_no_change`, `max_iter`) and equal-acceptance moves.
+- Discrete and continuous sampling produce the same trace format (`[run, fit1, node1, fit2, node2]`), so `LON.from_trace_data()`, `CMLON`, metrics, and visualization all work unchanged.
+
+### API and Behavior Changes
+
+- Package now exports `DiscreteProblem`, `BitstringProblem`, `NumberPartitioning`, `OneMax`, `ILSSampler`, `ILSSamplerConfig`, and `ILSResult`.
+- Internal module structure reorganized: continuous sampling moved to `lonkit.continuous.sampling`, discrete modules under `lonkit.discrete.problems` and `lonkit.discrete.sampling`.
+
+### Documentation
+
+- Updated user guide and API docs to cover the discrete framework, ILS sampling, and built-in problems.
+- Added discrete quick-start example to README.
+
 ## 0.2.0
 
 Second public release adding multiprocessing to Basin-Hopping sampling procedure.
