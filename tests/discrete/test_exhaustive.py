@@ -1,4 +1,4 @@
-import random
+import numpy as np
 
 from lonkit import ILSSampler, ILSSamplerConfig, NumberPartitioning, OneMax
 
@@ -15,7 +15,7 @@ class TestOneMax4Exhaustive:
         flipped to improve fitness.
         """
         problem = OneMax(n=4)
-        rng = random.Random(42)
+        rng = np.random.default_rng(42)
 
         # Enumerate all 16 solutions
         all_solutions = [list(map(int, format(i, "04b"))) for i in range(16)]
@@ -56,7 +56,7 @@ class TestNPP6Exhaustive:
         single-bit-flip neighbor).
         """
         problem = NumberPartitioning(n=6, k=0.5, instance_seed=1)
-        rng = random.Random(42)
+        rng = np.random.default_rng(42)
 
         all_solutions = [list(map(int, format(i, "06b"))) for i in range(64)]
 
@@ -83,7 +83,7 @@ class TestNPP6Exhaustive:
     def test_npp_6_sampled_lon_converges_to_exhaustive(self):
         """With enough runs, sampled LON should discover all local optima."""
         problem = NumberPartitioning(n=6, k=0.5, instance_seed=1)
-        rng = random.Random(42)
+        rng = np.random.default_rng(42)
 
         # Exhaustive: find all local optima
         all_solutions = [list(map(int, format(i, "06b"))) for i in range(64)]

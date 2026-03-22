@@ -1,6 +1,7 @@
 import math
-import random as stdlib_random
 import warnings
+
+import numpy as np
 
 from lonkit.discrete.problems.problem import DiscreteProblem
 
@@ -51,16 +52,17 @@ class BitstringProblem(DiscreteProblem[list[int]]):
         self.n_perturbation_flips = n_perturbation_flips
         self.first_improvement = first_improvement
 
-    def random_solution(self, rng: stdlib_random.Random) -> list[int]:
-        return [rng.randint(0, 1) for _ in range(self.n)]
+    def random_solution(self, rng: np.random.Generator) -> list[int]:
+        result: list[int] = rng.integers(0, 2, size=self.n).tolist()
+        return result
 
     def solution_id(self, solution: list[int]) -> str:
         return "".join(str(b) for b in solution)
 
-    def perturb(self, solution: list[int], rng: stdlib_random.Random) -> list[int]:
+    def perturb(self, solution: list[int], rng: np.random.Generator) -> list[int]:
         """Flip `n_perturbation_flips` random distinct bits."""
         sol = list(solution)  # copy
-        indices = rng.sample(range(self.n), self.n_perturbation_flips)
+        indices = rng.choice(self.n, size=self.n_perturbation_flips, replace=False)
         for i in indices:
             sol[i] = 1 - sol[i]
         return sol
@@ -89,7 +91,7 @@ class BitstringProblem(DiscreteProblem[list[int]]):
         return None
 
     def local_search(
-        self, solution: list[int], rng: stdlib_random.Random
+        self, solution: list[int], rng: np.random.Generator
     ) -> tuple[list[int], float]:
         """
         First/best improvement hill climbing with 1-bit-flip neighborhood.
@@ -210,10 +212,10 @@ class NumberPartitioning(BitstringProblem):
                 raise ValueError(f"k must be positive, got {k}")
             self.k = k
             self.instance_seed = instance_seed
-            # Generate item weights using a separate RNG (matches reference exactly)
-            rng = stdlib_random.Random(instance_seed)
+            # Generate item weights using a separate RNG
+            rng = np.random.default_rng(instance_seed)
             upper = round(math.pow(2, n * k))
-            self.weights = [rng.randrange(1, upper + 1) for _ in range(n)]
+            self.weights = rng.integers(1, upper + 1, size=n).tolist()
         else:
             raise ValueError("Provide either `weights` or both `k` and `instance_seed`")
 

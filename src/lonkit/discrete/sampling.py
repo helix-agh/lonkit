@@ -1,8 +1,8 @@
-import random as stdlib_random
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from lonkit.discrete.problems.problem import DiscreteProblem
@@ -76,7 +76,7 @@ class ILSSampler:
     in the same trace format as BasinHoppingSampler, enabling direct use
     with LON.from_trace_data().
 
-    The sampler owns all search randomness via a single `random.Random`
+    The sampler owns all search randomness via a single `numpy.random.Generator`
     instance created from `ILSSamplerConfig.seed`. The problem instance
     is stateless — the sampler passes its RNG into every problem method
     call (`random_solution`, `local_search`, `perturb`).
@@ -112,7 +112,7 @@ class ILSSampler:
         Returns:
             ILSResult with trace DataFrame and raw records.
         """
-        rng = stdlib_random.Random(self.config.seed)
+        rng = np.random.default_rng(self.config.seed)
         raw_records = []
 
         for run in range(1, self.config.n_runs + 1):
@@ -129,7 +129,7 @@ class ILSSampler:
         self,
         problem: DiscreteProblem[Any],
         run: int,
-        rng: stdlib_random.Random,
+        rng: np.random.Generator,
     ) -> list[dict]:
         """
         Execute a single ILS run.

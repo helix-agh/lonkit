@@ -1,4 +1,4 @@
-import random
+import numpy as np
 
 from lonkit.discrete.problems.bitstring import (
     NumberPartitioning,
@@ -31,7 +31,7 @@ class TestOneMax:
 
     def test_reaches_global_optimum_from_zeros(self):
         p = OneMax(n=4)
-        rng = random.Random(42)
+        rng = np.random.default_rng(42)
         sol, fit = p.local_search([0, 0, 0, 0], rng)
         assert sol == [1, 1, 1, 1]
         assert fit == 4.0
@@ -40,7 +40,7 @@ class TestOneMax:
         p = OneMax(n=4, n_perturbation_flips=2)
         original = [1, 1, 1, 1]
         copy = list(original)
-        rng = random.Random(42)
+        rng = np.random.default_rng(42)
         p.perturb(original, rng)
         assert original == copy
 

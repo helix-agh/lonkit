@@ -1,6 +1,7 @@
-import random
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
+
+import numpy as np
 
 SolutionT = TypeVar("SolutionT")
 
@@ -55,7 +56,7 @@ class DiscreteProblem(ABC, Generic[SolutionT]):
         return 0
 
     @abstractmethod
-    def random_solution(self, rng: random.Random) -> SolutionT:
+    def random_solution(self, rng: np.random.Generator) -> SolutionT:
         """
         Generate a random initial solution.
 
@@ -85,7 +86,9 @@ class DiscreteProblem(ABC, Generic[SolutionT]):
         ...
 
     @abstractmethod
-    def local_search(self, solution: SolutionT, rng: random.Random) -> tuple[SolutionT, float]:
+    def local_search(
+        self, solution: SolutionT, rng: np.random.Generator
+    ) -> tuple[SolutionT, float]:
         """
         Run local search from a starting solution to find a local optimum.
 
@@ -111,7 +114,7 @@ class DiscreteProblem(ABC, Generic[SolutionT]):
         ...
 
     @abstractmethod
-    def perturb(self, solution: SolutionT, rng: random.Random) -> SolutionT:
+    def perturb(self, solution: SolutionT, rng: np.random.Generator) -> SolutionT:
         """
         Apply a perturbation to escape the current basin of attraction.
 
