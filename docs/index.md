@@ -4,11 +4,11 @@ description: lonkit - Python library for constructing, analyzing, and visualizin
 
 # lonkit
 
-**Local Optima Networks for Continuous Optimization**
+**Local Optima Networks**
 
 ![lonkit](assets/icon.png){ width="100%" }
 
-lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous optimization problems.
+lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for both continuous and discrete optimization problems.
 
 ## What are Local Optima Networks?
 
@@ -26,7 +26,13 @@ Local Optima Networks (LONs) are graph-based models that capture the global stru
 
     ---
 
-    Efficient exploration of fitness landscapes using configurable Basin-Hopping with customizable perturbation strategies
+    Efficient exploration of continuous fitness landscapes using configurable Basin-Hopping with customizable perturbation strategies
+
+- **Iterated Local Search**
+
+    ---
+
+    Discrete LON construction via ILS with built-in problems (Number Partitioning, OneMax) and custom problem support
 
 - **LON Construction**
 

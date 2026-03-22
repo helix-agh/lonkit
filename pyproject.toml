@@ -1,7 +1,7 @@
 [project]
 name = "lonkit"
-version = "0.2.0"
-description = "Local Optima Networks (LONs) for continuous optimization - Python implementation"
+version = "0.3.0"
+description = "Local Optima Networks (LONs) for continuous and discrete optimization - Python implementation"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "HELIX AGH"}]
