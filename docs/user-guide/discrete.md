@@ -73,7 +73,7 @@ OneMax has a single global optimum (all ones) and supports O(1) delta evaluation
 To define your own discrete problem, you can subclass `DiscreteProblem`:
 
 ```python
-import random
+import numpy as np
 from lonkit import DiscreteProblem
 
 class MaxCut(DiscreteProblem[list[int]]):
@@ -87,8 +87,8 @@ class MaxCut(DiscreteProblem[list[int]]):
     def minimize(self) -> bool:
         return False  # maximization
 
-    def random_solution(self, rng: random.Random) -> list[int]:
-        return [rng.randint(0, 1) for _ in range(self.n)]
+    def random_solution(self, rng: np.random.Generator) -> list[int]:
+        return rng.integers(0, 2, size=self.n).tolist()
 
     def evaluate(self, solution: list[int]) -> float:
         cut = 0
@@ -98,7 +98,7 @@ class MaxCut(DiscreteProblem[list[int]]):
                     cut += 1
         return float(cut // 2)  # each edge counted twice
 
-    def local_search(self, solution: list[int], rng: random.Random) -> tuple[list[int], float]:
+    def local_search(self, solution: list[int], rng: np.random.Generator) -> tuple[list[int], float]:
         sol = list(solution)
         fitness = self.evaluate(sol)
         improved = True
@@ -116,9 +116,9 @@ class MaxCut(DiscreteProblem[list[int]]):
                 sol[i] = 1 - sol[i]
         return sol, fitness
 
-    def perturb(self, solution: list[int], rng: random.Random) -> list[int]:
+    def perturb(self, solution: list[int], rng: np.random.Generator) -> list[int]:
         sol = list(solution)
-        indices = rng.sample(range(self.n), min(3, self.n))
+        indices = rng.choice(self.n, size=min(3, self.n), replace=False)
         for i in indices:
             sol[i] = 1 - sol[i]
         return sol
