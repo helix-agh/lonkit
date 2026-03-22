@@ -110,7 +110,8 @@ class BitstringProblem(DiscreteProblem[list[int]]):
         while improved:
             improved = False
             indices = list(range(self.n))
-            rng.shuffle(indices)
+            if self.first_improvement:
+                rng.shuffle(indices)
 
             best_delta_index = -1
             best_delta_fitness = current_fitness
