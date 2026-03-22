@@ -1,3 +1,7 @@
+---
+description: Complete examples demonstrating lonkit capabilities on benchmark optimization problems like Rastrigin, Ackley, and Sphere functions.
+---
+
 # Examples
 
 Complete examples demonstrating lonkit's capabilities.
@@ -216,23 +220,23 @@ config = BasinHoppingSamplerConfig(n_runs=5, n_iter_no_change=100, seed=42)
 sampler = BasinHoppingSampler(config)
 
 domain = [(-5.0, 5.0), (-5.0, 5.0)]
-trace_df, raw_records = sampler.sample(sphere, domain)
+result = sampler.sample(sphere, domain)
 
 # Trace data for LON construction
 print("=== Trace Data ===")
-print(trace_df.head(10))
-print(f"\nTotal transitions: {len(trace_df)}")
+print(result.trace_df.head(10))
+print(f"\nTotal transitions: {len(result.trace_df)}")
 
 # Raw iteration data
 print("\n=== Sample Raw Records ===")
-for i, rec in enumerate(raw_records[:5]):
+for i, rec in enumerate(result.raw_records[:5]):
     print(f"Run {rec['run']}, Iter {rec['iteration']}:")
     print(f"  From: {rec['current_f']:.6f} -> To: {rec['new_f']:.6f}")
     print(f"  Accepted: {rec['accepted']}")
 
 # Analyze acceptance rate
-accepted = sum(r['accepted'] for r in raw_records)
-total = len(raw_records)
+accepted = sum(r['accepted'] for r in result.raw_records)
+total = len(result.raw_records)
 print(f"\nAcceptance rate: {accepted/total:.1%}")
 ```
 

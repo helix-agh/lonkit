@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="docs/assets/icon.png" alt="lonkit" width="800">
+    <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/icon.png" alt="lonkit" width="800">
 </div>
 
 [![PyPI version](https://badge.fury.io/py/lonkit.svg)](https://pypi.org/project/lonkit/)
@@ -100,7 +100,8 @@ sampler = BasinHoppingSampler(config)
 domain = [(-5.12, 5.12), (-5.12, 5.12)]
 
 # Run sampling
-lon = sampler.sample_to_lon(rastrigin, domain)
+result = sampler.sample(rastrigin, domain)
+lon = sampler.sample_to_lon(result)
 ```
 
 ## Discrete Optimization Problems

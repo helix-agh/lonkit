@@ -1,3 +1,7 @@
+---
+description: Analyzing Local Optima Networks using computed metrics. Funnel analysis, neutrality, strength metrics, and sink identification.
+---
+
 # Analysis Guide
 
 This guide explains how to analyze LONs and interpret the computed metrics.

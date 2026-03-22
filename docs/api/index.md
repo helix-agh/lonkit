@@ -1,3 +1,7 @@
+---
+description: Complete API reference for lonkit. Documentation for LON, CMLON, BasinHoppingSampler, LONVisualizer, and configuration classes.
+---
+
 # API Reference
 
 Complete API documentation for lonkit.
@@ -41,6 +45,14 @@ Iterated Local Search sampling and built-in discrete problems.
 Plotting and animation tools.
 
 - [`LONVisualizer`](visualization.md#lonkit.visualization.LONVisualizer) - Visualization class
+
+### [Step Size Module](step_size.md)
+
+Tools for estimating optimal Basin-Hopping step sizes.
+
+- [`StepSizeEstimator`](step_size.md#lonkit.step_size.StepSizeEstimator) - Step size estimation
+- [`StepSizeEstimatorConfig`](step_size.md#lonkit.step_size.StepSizeEstimatorConfig) - Configuration
+- [`StepSizeResult`](step_size.md#lonkit.step_size.StepSizeResult) - Estimation result
 
 ## Quick Reference
 

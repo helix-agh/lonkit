@@ -4,6 +4,36 @@ version = "0.2.0"
 description = "Local Optima Networks (LONs) for continuous optimization - Python implementation"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [{name = "HELIX AGH"}]
+license = {text = "MIT"}
+urls = {Homepage = "https://helix-agh.github.io/lonkit", Documentation = "https://helix-agh.github.io/lonkit", Repository = "https://github.com/helix-agh/lonkit", Issues = "https://github.com/helix-agh/lonkit/issues"}
+keywords = [
+    "optimization",
+    "fitness-landscape",
+    "local-optima-networks",
+    "basin-hopping",
+    "evolutionary-algorithms",
+    "continuous-optimization",
+    "discrete-optimization",
+    "metaheuristics",
+    "fitness-landscape-analysis",
+    "visualization",
+    "multi-dimensional"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "numpy>=1.24.0",
     "scipy>=1.10.0",
@@ -13,6 +43,8 @@ dependencies = [
     "plotly>=5.15.0",
     "kaleido>=0.2.1",
     "imageio>=2.31.0",
+    "joblib>=1.3.0",
+    "tqdm>=4.67.3",
 ]
 
 [project.optional-dependencies]

@@ -1,3 +1,7 @@
+---
+description: Installation of lonkit Python library via pip or from source.
+---
+
 # Installation
 
 ## Requirements

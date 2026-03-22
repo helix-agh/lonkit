@@ -128,11 +128,12 @@ class StepSizeEstimator:
         """
         bounds_array = domain_array if self.config.bounded else None
         p = step_size * np.abs(domain_array[:, 1] - domain_array[:, 0])
+        rng = np.random.default_rng(self.config.seed)
 
         escape_rates = []
 
         for _ in range(self.config.n_samples):
-            x0 = sampler._rng.uniform(domain_array[:, 0], domain_array[:, 1])
+            x0 = rng.uniform(domain_array[:, 0], domain_array[:, 1])
             try:
                 res = minimize(
                     func,
@@ -154,7 +155,7 @@ class StepSizeEstimator:
 
             escapes = 0
             for _ in range(self.config.n_perturbations):
-                x_perturbed = sampler._perturbation(optimum, p, bounds_array)
+                x_perturbed = sampler._perturbation(optimum, p, rng, bounds_array)
                 try:
                     res_perturbed = minimize(
                         func,

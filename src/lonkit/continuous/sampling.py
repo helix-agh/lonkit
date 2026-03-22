@@ -3,9 +3,11 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from typing import Literal
 
+import joblib
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+from tqdm import tqdm
 
 from lonkit.lon import LON, LONConfig
 
@@ -41,6 +43,13 @@ class BasinHoppingSamplerConfig:
             ``minimizer_method``. Use ``None`` to rely on scipy's defaults.
             Default: `None`.
         seed: Random seed for reproducibility. Default: `None`.
+        n_jobs: The maximum number of concurrently running ``joblib`` jobs:
+        - ``1`` runs sequentially,
+        - ``-1`` uses all available CPUs;
+        - ``N > 1`` uses maximum of N processes;
+        - ``-N`` uses maximum of ``max(1, cpu_count - N + 1)`` processes;
+        - ``None`` is treated as ``1``.
+        Reproducibility is guaranteed across different ``n_jobs`` values when ``seed`` is set. Default: ``1``.
     """
 
     n_runs: int = 100
@@ -54,6 +63,7 @@ class BasinHoppingSamplerConfig:
     minimizer_method: str | Callable | None = "L-BFGS-B"
     minimizer_options: dict | None = None
     seed: int | None = None
+    n_jobs: int | None = 1
 
     def __post_init__(self) -> None:
         if self.n_iter_no_change is not None and self.n_iter_no_change <= 0:
@@ -102,12 +112,12 @@ class BasinHoppingSampler:
 
     def __init__(self, config: BasinHoppingSamplerConfig | None = None):
         self.config = config or BasinHoppingSamplerConfig()
-        self._rng = np.random.default_rng(self.config.seed)
 
     def _perturbation(
         self,
         x: np.ndarray,
         p: np.ndarray,
+        rng: np.random.Generator,
         bounds: np.ndarray | None = None,
     ) -> np.ndarray:
         """
@@ -116,12 +126,13 @@ class BasinHoppingSampler:
         Args:
             x: Current solution coordinates.
             p: Per-dimension perturbation magnitude.
+            rng: Random number generator for the perturbation.
             bounds: Optional (n_var, 2) array of domain bounds for clipping.
 
         Returns:
             Perturbed solution, clipped to bounds if ``bounded`` is enabled.
         """
-        y = x + self._rng.uniform(low=-p, high=p)
+        y = x + rng.uniform(low=-p, high=p)
         if self.config.bounded and bounds is not None:
             return np.clip(y, bounds[:, 0], bounds[:, 1])
         return y
@@ -164,21 +175,229 @@ class BasinHoppingSampler:
 
         return hash_str
 
+    def _single_bh_run(
+        self,
+        run: int,
+        func: Callable[[np.ndarray], float],
+        initial_point: np.ndarray,
+        p: np.ndarray,
+        bounds_array: np.ndarray | None,
+        rng: np.random.Generator,
+    ) -> tuple[list[dict], int]:
+        """
+        Execute a single Basin-Hopping run.
+
+        Args:
+            run: 1-based run index (recorded in every raw record).
+            func: Objective function to minimize.
+            initial_point: Starting point for this run.
+            p: Per-dimension perturbation magnitude.
+            bounds_array: (n_var, 2) bounds array, or ``None`` if unbounded.
+            rng: Random number generator for perturbations in this run.
+
+        Returns:
+            Tuple of (records, nfev) for this run.
+        """
+        nfev = 0
+
+        try:
+            res = minimize(
+                func,
+                initial_point,
+                method=self.config.minimizer_method,
+                options=self.config.minimizer_options,
+                bounds=bounds_array if self.config.bounded else None,
+            )
+        except ValueError as e:
+            warnings.warn(
+                f"Run {run}: initial minimize failed with ValueError: {e}. "
+                f"Starting point: {initial_point}. Skipping run.",
+                stacklevel=3,
+            )
+            return [], 0
+
+        current_x = res.x
+        current_f = res.fun
+        nfev += res.nfev
+
+        records: list[dict] = []
+        iters_without_improvement = 0
+        iter_index = 0
+
+        while True:
+            if self.config.max_iter is not None and iter_index >= self.config.max_iter:
+                break
+            if (
+                self.config.n_iter_no_change is not None
+                and iters_without_improvement >= self.config.n_iter_no_change
+            ):
+                break
+
+            x_perturbed = self._perturbation(current_x, p, rng, bounds_array)
+            try:
+                res = minimize(
+                    func,
+                    x_perturbed,
+                    method=self.config.minimizer_method,
+                    options=self.config.minimizer_options,
+                    bounds=bounds_array if self.config.bounded else None,
+                )
+            except ValueError as e:
+                # L-BFGS-B can produce internal iterates that slightly
+                # violate bounds, causing approx_derivative to fail.
+                # Skip this perturbation and try the next one.
+                warnings.warn(
+                    f"Run {run}, iteration {iter_index}: minimize after perturbation "
+                    f"failed with ValueError: {e}. "
+                    f"Perturbed point: {x_perturbed}. Skipping perturbation.",
+                    stacklevel=3,
+                )
+                iters_without_improvement += 1
+                iter_index += 1
+                continue
+
+            new_x = res.x
+            new_f = res.fun
+            nfev += res.nfev
+
+            records.append(
+                {
+                    "run": run,
+                    "iteration": iter_index,
+                    "current_x": current_x.copy(),
+                    "current_f": current_f,
+                    "new_x": new_x.copy(),
+                    "new_f": new_f,
+                    "accepted": new_f <= current_f,
+                }
+            )
+
+            if self.config.n_iter_no_change is not None:
+                if new_f < current_f:
+                    iters_without_improvement = 0
+                else:
+                    iters_without_improvement += 1
+
+            # Acceptance criterion (minimization: accept if better or equal)
+            if new_f <= current_f:
+                current_x = new_x.copy()
+                current_f = new_f
+
+            iter_index += 1
+
+        return records, nfev
+
+    def _sequential_bh(
+        self,
+        func: Callable[[np.ndarray], float],
+        initial_points: np.ndarray,
+        p: np.ndarray,
+        bounds_array: np.ndarray | None,
+        run_seeds: list[np.random.SeedSequence],
+        progress_callback: Callable[[int, int], None] | None = None,
+        verbose: bool = False,
+    ) -> tuple[list[dict], int]:
+        """
+        Executes set of ``_single_bh_run`` calls in sequence, without using ``joblib``.
+
+        Used when ``joblib.effective_n_jobs`` equals ``1``.
+        """
+        raw_records: list[dict] = []
+        nfev_total = 0
+
+        runs = range(1, self.config.n_runs + 1)
+        run_iter = tqdm(runs, total=self.config.n_runs) if verbose else runs
+        for run in run_iter:
+            rng = np.random.default_rng(run_seeds[run - 1])
+            records, nfev = self._single_bh_run(
+                run, func, initial_points[run - 1], p, bounds_array, rng
+            )
+            if progress_callback:
+                progress_callback(run, self.config.n_runs)
+            raw_records.extend(records)
+            nfev_total += nfev
+
+        return raw_records, nfev_total
+
+    def _parallel_bh(
+        self,
+        func: Callable[[np.ndarray], float],
+        initial_points: np.ndarray,
+        p: np.ndarray,
+        bounds_array: np.ndarray | None,
+        run_seeds: list[np.random.SeedSequence],
+        effective_n_jobs: int,
+        progress_callback: Callable[[int, int], None] | None = None,
+        verbose: bool = False,
+    ) -> tuple[list[dict], int]:
+        """
+        Executes set of ``_single_bh_run`` calls in parallel using ``joblib``.
+
+        At the moment, the joblib runner uses "generator_unordered" setting,
+        which makes the order of the completion and callback function calls non-deterministic.
+        This does not affect the ``LON`` creation, as the order of the iterations within the run
+        remains the same in the resulting array, allowing for stable sorting by run later.
+
+        The ``joblib.Parallel`` runner needs to use the ``_run_single_bh_in_worker`` function, because
+        of pickling - the pickled objects cannot share the same memory to achieve true parallelism between the
+        processes, so we need to create separate ``BasinHoppingSampler`` object for each run.
+        """
+        parallel_runner = joblib.Parallel(
+            n_jobs=effective_n_jobs,
+            prefer="processes",
+            return_as="generator_unordered",
+        )
+
+        parallel_results = parallel_runner(
+            joblib.delayed(_run_single_bh_in_worker)(
+                run + 1,
+                func,
+                initial_points[run],
+                p,
+                bounds_array,
+                self.config,
+                run_seeds[run],
+            )
+            for run in range(self.config.n_runs)
+        )
+
+        raw_records: list[dict] = []
+        nfev_total = 0
+        result_iter = (
+            tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
+        )
+        for _, (run, records, nfev) in enumerate(result_iter, 1):
+            if progress_callback:
+                progress_callback(run, self.config.n_runs)
+            raw_records.extend(records)
+            nfev_total += nfev
+
+        return raw_records, nfev_total
+
     def _basin_hopping_sampling(
         self,
         func: Callable[[np.ndarray], float],
         domain: list[tuple[float, float]],
         initial_points: np.ndarray,
         progress_callback: Callable[[int, int], None] | None = None,
+        verbose: bool = False,
     ) -> tuple[list[dict], int]:
         """
         Run Basin-Hopping sampling to generate LON data.
+
+        Runs are dispatched sequentially (``n_jobs=1``) or in parallel across
+        separate processes (``n_jobs != 1``).  Results are identical for the same
+        ``seed`` regardless of the ``n_jobs`` value because every run receives a
+        deterministic, independent RNG seed derived from
+        ``numpy.random.SeedSequence(config.seed)``.
 
         Args:
             func: Objective function to minimize (f: R^n_var -> R).
             domain: List of (lower, upper) bounds per dimension.
             initial_points: Array of shape (config.n_runs, n_var) with initial points.
             progress_callback: Optional callback(run, total_runs) for progress.
+                Called after each run completes. Always called from the main process,
+                regardless of ``n_jobs``.
 
         Returns:
             Tuple of (raw_records, nfev_total) where raw_records is a list of
@@ -188,7 +407,6 @@ class BasinHoppingSampler:
         """
         n_var = len(domain)
         domain_array = np.array(domain)
-        nfev_total = 0
 
         # Compute step size based on mode
         if self.config.step_mode == "percentage":
@@ -197,101 +415,40 @@ class BasinHoppingSampler:
             p = self.config.step_size * np.ones(n_var)
 
         bounds_array = domain_array if self.config.bounded else None
-        raw_records = []
 
-        for run in range(1, self.config.n_runs + 1):
-            if progress_callback:
-                progress_callback(run, self.config.n_runs)
+        # Derive one independent, deterministic seed per run from the root seed.
+        # Using SeedSequence guarantees statistical independence between run RNGs
+        # and reproducibility across different n_jobs values.
+        run_seeds = np.random.SeedSequence(self.config.seed).spawn(self.config.n_runs)
 
-            try:
-                res = minimize(
-                    func,
-                    initial_points[run - 1],
-                    method=self.config.minimizer_method,
-                    options=self.config.minimizer_options,
-                    bounds=bounds_array if self.config.bounded else None,
-                )
-            except ValueError as e:
-                warnings.warn(
-                    f"Run {run}: initial minimize failed with ValueError: {e}. "
-                    f"Starting point: {initial_points[run - 1]}. Skipping run.",
-                    stacklevel=3,
-                )
-                continue
+        effective_n_jobs = joblib.effective_n_jobs(self.config.n_jobs)
 
-            current_x = res.x
-            current_f = res.fun
-            nfev_total += res.nfev
+        if effective_n_jobs == 1:
+            return self._sequential_bh(
+                func,
+                initial_points,
+                p,
+                bounds_array,
+                run_seeds,
+                progress_callback,
+                verbose,
+            )
 
-            iters_without_improvement = 0
-            iter_index = 0
-
-            while True:
-                if self.config.max_iter is not None and iter_index >= self.config.max_iter:
-                    break
-                if (
-                    self.config.n_iter_no_change is not None
-                    and iters_without_improvement >= self.config.n_iter_no_change
-                ):
-                    break
-
-                x_perturbed = self._perturbation(current_x, p, bounds_array)
-                try:
-                    res = minimize(
-                        func,
-                        x_perturbed,
-                        method=self.config.minimizer_method,
-                        options=self.config.minimizer_options,
-                        bounds=bounds_array if self.config.bounded else None,
-                    )
-                except ValueError as e:
-                    # L-BFGS-B can produce internal iterates that slightly
-                    # violate bounds, causing approx_derivative to fail.
-                    # Skip this perturbation and try the next one.
-                    warnings.warn(
-                        f"Run {run}, iteration {iter_index}: minimize after perturbation "
-                        f"failed with ValueError: {e}. "
-                        f"Perturbed point: {x_perturbed}. Skipping perturbation.",
-                        stacklevel=3,
-                    )
-                    iters_without_improvement += 1
-                    iter_index += 1
-                    continue
-
-                new_x = res.x
-                new_f = res.fun
-                nfev_total += res.nfev
-
-                raw_records.append(
-                    {
-                        "run": run,
-                        "iteration": iter_index,
-                        "current_x": current_x.copy(),
-                        "current_f": current_f,
-                        "new_x": new_x.copy(),
-                        "new_f": new_f,
-                        "accepted": new_f <= current_f,
-                    }
-                )
-
-                if self.config.n_iter_no_change is not None:
-                    if new_f < current_f:
-                        iters_without_improvement = 0
-                    else:
-                        iters_without_improvement += 1
-
-                # Acceptance criterion (minimization: accept if better or equal)
-                if new_f <= current_f:
-                    current_x = new_x.copy()
-                    current_f = new_f
-
-                iter_index += 1
-
-        return raw_records, nfev_total
+        return self._parallel_bh(
+            func,
+            initial_points,
+            p,
+            bounds_array,
+            run_seeds,
+            effective_n_jobs,
+            progress_callback,
+            verbose,
+        )
 
     def _construct_trace_data(self, raw_records: list[dict]) -> pd.DataFrame:
         """
-        Construct trace data from accepted transitions in raw records.
+        Construct trace data from accepted transitions in raw records. The returned
+        trace DataFrame is sorted by run.
 
         Args:
             raw_records: List of raw sampling records from basin hopping.
@@ -331,6 +488,7 @@ class BasinHoppingSampler:
             )
 
         trace_df = pd.DataFrame(trace_records, columns=["run", "fit1", "node1", "fit2", "node2"])
+        trace_df = trace_df.sort_values(by=["run"], kind="mergesort").reset_index(drop=True)
         return trace_df
 
     def _resolve_initial_points(
@@ -343,7 +501,8 @@ class BasinHoppingSampler:
         domain_array = np.array(domain)
 
         if initial_points is None:
-            return self._rng.uniform(domain_array[:, 0], domain_array[:, 1], size=(n_runs, n_var))
+            rng = np.random.default_rng(self.config.seed)
+            return rng.uniform(domain_array[:, 0], domain_array[:, 1], size=(n_runs, n_var))
 
         initial_points = np.asarray(initial_points, dtype=float)
 
@@ -377,6 +536,7 @@ class BasinHoppingSampler:
         domain: list[tuple[float, float]],
         initial_points: np.ndarray | None = None,
         progress_callback: Callable[[int, int], None] | None = None,
+        verbose: bool = False,
     ) -> BasinHoppingResult:
         """
         Run Basin-Hopping sampling and construct trace data.
@@ -387,8 +547,9 @@ class BasinHoppingSampler:
             initial_points: Optional array of shape (`config.n_runs`, `n_var`) with
                 starting points for each run. If `None`, points are sampled
                 uniformly at random from the domain. Default: `None`.
-            progress_callback: Optional callback(run, total_runs) for progress. Default: `None`.
-
+            progress_callback: Optional callback(run, total_runs) for progress.
+                Called after each run completes. Default: `None`.
+            verbose:  If True, show a progress bar during sampling. Default: `False`.
         Returns:
             BasinHoppingResult: Result of the sampling run.
         """
@@ -396,7 +557,7 @@ class BasinHoppingSampler:
 
         # Collect all raw sampling data
         raw_records, nfev_total = self._basin_hopping_sampling(
-            func, domain, resolved_points, progress_callback
+            func, domain, resolved_points, progress_callback, verbose
         )
 
         # Construct trace data from accepted transitions
@@ -440,6 +601,41 @@ class BasinHoppingSampler:
         return LON.from_trace_data(trace_df, config=_lon_config)
 
 
+def _run_single_bh_in_worker(
+    run: int,
+    func: Callable[[np.ndarray], float],
+    initial_point: np.ndarray,
+    p: np.ndarray,
+    bounds_array: np.ndarray | None,
+    config: BasinHoppingSamplerConfig,
+    seed: np.random.SeedSequence,
+) -> tuple[int, list[dict], int]:
+    """
+    Module-level worker for a single Basin-Hopping run.
+
+    Defined at module level (not as a method) so that it is picklable by
+    joblib's ``loky`` multiprocessing backend.  Creates a temporary
+    ``BasinHoppingSampler`` and an RNG seeded from ``seed``, then delegates
+    to ``_single_bh_run``.
+
+    Args:
+        run: 1-based run index.
+        func: Objective function to minimize.
+        initial_point: Starting point for this run.
+        p: Per-dimension perturbation magnitude.
+        bounds_array: (n_var, 2) bounds array, or ``None`` if unbounded.
+        config: Sampler configuration (picklable dataclass).
+        seed: ``SeedSequence`` child spawned for this run.
+
+    Returns:
+        Tuple of (run, records, nfev) for this run.
+    """
+    sampler = BasinHoppingSampler(config)
+    rng = np.random.default_rng(seed)
+    records, nfev = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
+    return run, records, nfev
+
+
 def compute_lon(
     func: Callable[[np.ndarray], float],
     dim: int,
@@ -448,6 +644,7 @@ def compute_lon(
     initial_points: np.ndarray | None = None,
     config: BasinHoppingSamplerConfig | None = None,
     lon_config: LONConfig | None = None,
+    verbose: bool = False,
 ) -> LON:
     """
     Compute a LON from an objective function.
@@ -467,6 +664,7 @@ def compute_lon(
             BasinHoppingSamplerConfig if not provided.
         lon_config: LON construction configuration. Uses default
             LONConfig if not provided.
+        verbose: If True, show a progress bar during sampling. Default: `False`.
 
     Returns:
         LON instance.
@@ -489,5 +687,5 @@ def compute_lon(
     domain = list(zip(lower_bounds, upper_bounds, strict=True))
 
     sampler = BasinHoppingSampler(config)
-    result = sampler.sample(func, domain, initial_points=initial_points)
+    result = sampler.sample(func, domain, initial_points=initial_points, verbose=verbose)
     return sampler.sample_to_lon(result, lon_config=lon_config)
