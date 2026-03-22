@@ -53,7 +53,7 @@ import lonkit
 print(lonkit.__version__)
 ```
 
-You should see the version number (e.g., `0.2.0`).
+You should see the version number (e.g., `0.3.0`).
 
 ## Troubleshooting
 
