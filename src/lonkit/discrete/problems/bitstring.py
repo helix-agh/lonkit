@@ -1,5 +1,6 @@
 import math
 import random as stdlib_random
+import warnings
 
 from lonkit.discrete.problems.problem import DiscreteProblem
 
@@ -188,6 +189,13 @@ class NumberPartitioning(BitstringProblem):
     ):
         super().__init__(n, n_perturbation_flips, first_improvement)
         if weights is not None:
+            if k is not None or instance_seed is not None:
+                warnings.warn(
+                    "Both `weights` and `k`/`instance_seed` were provided. "
+                    "`weights` will be used and `k`/`instance_seed` will be ignored.",
+                    UserWarning,
+                    stacklevel=2,
+                )
             if len(weights) != n:
                 raise ValueError(f"weights length ({len(weights)}) must equal n ({n})")
             if any(w <= 0 for w in weights):
