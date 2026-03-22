@@ -171,7 +171,9 @@ class NumberPartitioning(BitstringProblem):
         weights: Explicit item weights. If provided, `k` and
             `instance_seed` are ignored. Length must equal `n`.
         n_perturbation_flips: Number of random flips per perturbation (default: 2).
-        first_improvement: Hill climbing strategy (default: True).
+        first_improvement: If True, local search uses first-improvement
+            hill climbing (stochastic -- scan order randomized each pass).
+            If False, uses best-improvement (deterministic). Default: True.
     """
 
     @property

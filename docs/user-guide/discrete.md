@@ -170,6 +170,17 @@ class LeadingOnes(BitstringProblem):
 - Set `first_improvement=False` for deterministic best-improvement hill climbing
 - Adjust `n_perturbation_flips` to control perturbation strength
 
+**First-improvement vs best-improvement:**
+
+- **First-improvement** (`first_improvement=True`, default): The scan order over neighbor
+  positions is randomized each pass. As soon as an improving neighbor is found, the move
+  is accepted immediately. This makes the local search *stochastic* — the same starting
+  solution may reach different local optima depending on the RNG state.
+- **Best-improvement** (`first_improvement=False`): All neighbors are evaluated every pass
+  and the best improving move is selected. The scan order does not affect the outcome,
+  making the local search *deterministic* (given the same starting solution, it always
+  reaches the same local optimum).
+
 ## ILS Configuration
 
 Configure the sampling process with `ILSSamplerConfig`:
