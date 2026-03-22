@@ -33,6 +33,7 @@ class LONConfig:
     warn_on_duplicates: bool = True
     max_fitness_deviation: float | None = None
     eq_atol: float = DEFAULT_ATOL
+    minimize: bool = True
 
 
 @dataclass
@@ -45,15 +46,17 @@ class LON:
 
     Attributes:
         graph: The underlying `igraph` Graph object. Default: empty directed `ig.Graph`.
-        best_fitness: The best (minimum) fitness value found. Default: `None`.
+        best_fitness: The best fitness value found. Default: `None`.
         final_run_values: `Series` mapping run number to final fitness value. Default: `None`.
         eq_atol: Tolerance for considering fitness values as equal. Default: `1e-12`.
+        minimize: Whether this is a minimization problem. Default: `True`.
     """
 
     graph: ig.Graph = field(default_factory=lambda: ig.Graph(directed=True))
     best_fitness: float | None = None
     final_run_values: pd.Series | None = None
     eq_atol: float = DEFAULT_ATOL
+    minimize: bool = True
 
     @classmethod
     def from_trace_data(
@@ -152,13 +155,14 @@ class LON:
         # Remove self-loops
         graph = graph.simplify(multiple=False, loops=True)
 
-        best = nodes["Fitness"].min()
+        best = nodes["Fitness"].min() if config.minimize else nodes["Fitness"].max()
 
         return cls(
             graph=graph,
             best_fitness=best,
             final_run_values=final_run_values,
             eq_atol=config.eq_atol,
+            minimize=config.minimize,
         )
 
     @property
@@ -348,15 +352,17 @@ class CMLON:
 
     Attributes:
         graph: The underlying igraph Graph object.
-        best_fitness: The best (minimum) fitness value.
+        best_fitness: The best fitness value.
         source_lon: Reference to the original LON (optional).
         eq_atol: Tolerance for considering fitness values as equal. Default: `1e-12`.
+        minimize: Whether this is a minimization problem. Default: `True`.
     """
 
     graph: ig.Graph = field(default_factory=lambda: ig.Graph(directed=True))
     best_fitness: float | None = None
     source_lon: LON | None = None
     eq_atol: float = DEFAULT_ATOL
+    minimize: bool = True
 
     @classmethod
     def from_lon(cls, lon: LON) -> "CMLON":
@@ -383,6 +389,7 @@ class CMLON:
                 best_fitness=lon.best_fitness,
                 source_lon=lon,
                 eq_atol=lon.eq_atol,
+                minimize=lon.minimize,
             )
 
         # Create a working copy
@@ -399,11 +406,11 @@ class CMLON:
         edge_types = []
         equal_edge_indices = []
         for i, (fit1, fit2) in enumerate(zip(f1, f2)):
-            if fit2 < fit1:
-                edge_types.append("improving")
-            elif lon._allclose(fit2, fit1):
+            if lon._allclose(fit2, fit1):
                 edge_types.append("equal")
                 equal_edge_indices.append(i)
+            elif (fit2 < fit1) if lon.minimize else (fit2 > fit1):
+                edge_types.append("improving")
             else:
                 edge_types.append("worsening")
         mlon.es["type"] = edge_types
@@ -429,6 +436,7 @@ class CMLON:
             best_fitness=lon.best_fitness,
             source_lon=lon,
             eq_atol=lon.eq_atol,
+            minimize=lon.minimize,
         )
 
     def _allclose(self, f1: float | None, f2: float | None) -> bool:
@@ -474,7 +482,9 @@ class CMLON:
         fits = self.vertex_fitness
         if self.best_fitness is None:
             return []
-        return [s for s in sinks if fits[s] > self.best_fitness]
+        if self.minimize:
+            return [s for s in sinks if fits[s] > self.best_fitness]
+        return [s for s in sinks if fits[s] < self.best_fitness]
 
     def compute_network_metrics(self, known_best: float | None = None) -> dict[str, Any]:
         """

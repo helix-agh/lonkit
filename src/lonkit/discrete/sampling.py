@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import numpy as np
@@ -60,10 +60,12 @@ class ILSResult:
         raw_records: List of dicts with per-iteration data. Each dict
             has keys: run, iteration, current_id, current_fitness,
             new_id, new_fitness, accepted.
+        minimize: Whether the problem is a minimization problem. Default: True.
     """
 
     trace_df: pd.DataFrame
     raw_records: list[dict]
+    minimize: bool = True
 
 
 class ILSSampler:
@@ -123,7 +125,7 @@ class ILSSampler:
             raw_records.extend(run_records)
 
         trace_df = self._construct_trace_data(raw_records)
-        return ILSResult(trace_df=trace_df, raw_records=raw_records)
+        return ILSResult(trace_df=trace_df, raw_records=raw_records, minimize=problem.minimize)
 
     def _ils_run(
         self,
@@ -263,6 +265,11 @@ class ILSSampler:
         trace_df = sampler_result.trace_df
 
         if trace_df.empty:
-            return LON()
+            return LON(minimize=sampler_result.minimize)
 
-        return LON.from_trace_data(trace_df, config=lon_config or LONConfig())
+        config = (
+            replace(lon_config, minimize=sampler_result.minimize)
+            if lon_config is not None
+            else LONConfig(minimize=sampler_result.minimize)
+        )
+        return LON.from_trace_data(trace_df, config=config)
