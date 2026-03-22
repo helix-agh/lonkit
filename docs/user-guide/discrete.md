@@ -70,7 +70,7 @@ OneMax has a single global optimum (all ones) and supports O(1) delta evaluation
 
 ## Custom Problems
 
-To define your own discrete problem, subclass `DiscreteProblem`:
+To define your own discrete problem, you can subclass `DiscreteProblem`:
 
 ```python
 import random
