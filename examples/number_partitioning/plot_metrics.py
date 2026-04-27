@@ -1,31 +1,12 @@
 """
-Number Partitioning Problem: Phase Transition Sweep with Empirical Boundary Detection
-======================================================================================
-This companion script sweeps the phase-transition parameter k across its full
+Number Partitioning Problem: Phase Transition Sweep
+===================================================
+The example script sweeps the phase-transition parameter k across its full
 range [0, 1] and plots LON / CMLON network metrics, ILS success, and the
 transition-rate derivative.
 
-Hard-region boundaries are detected *empirically* from the sweep data rather than
-being hardcoded.  The detection strategy follows the finite-size scaling approach
-standard in the statistical-mechanics literature on phase transitions:
-
-  The transition centre k* is located at the steepest descent of the ILS success
-  rate — i.e. the k value where the smoothed curve of -d(success)/dk is maximal.
-  This mirrors how Gent & Walsh (1998) locate the critical constrainedness value
-  experimentally.
-
-  Metrics use ``compute_metrics()`` with default ``known_best=None`` (best fitness
-  in the sampled network).
-
-Note on the lonkit k parameter vs. the Mertens kappa
-------------------------------------------------------
-The canonical NPP phase transition in the physics literature (Mertens 1998,
-Borgs et al. 2001) is parameterised by kappa = log2(M) / n, where integers are
-drawn from [1, 2^M] and n is the count.  The critical point is kappa_c = 1.
-lonkit's NumberPartitioning uses a different k: the ratio of the largest number
-to the sum of all numbers.  These are related but not directly interchangeable,
-so the empirical approach taken here is more appropriate than translating
-kappa_c = 1 directly into lonkit's k space.
+The transition centre k* is located at the steepest descent of the ILS success
+rate - i.e. the k value where the smoothed curve of -d(success)/dk is maximal.
 
 References
 ----------
@@ -37,12 +18,7 @@ Borgs, C., Chayes, J., Mertens, S., & Nair, C. (2001). Phase transition and
 Gent, I. P., & Walsh, T. (1998). Analysis of heuristics for number partitioning.
     Computational Intelligence, 14(2), 430-451.
 
-Outputs two figures: ``npp_phase_transition_sweep.png`` (single column) and
-``npp_phase_transition_sweep_grid.png`` (two rows of three panels, legend below).
-
-Requirements
-------------
-    pip install lonkit matplotlib numpy scipy
+Outputs one figure: ``NPP_phase_transition_sweep.png``
 """
 
 from pathlib import Path
@@ -119,18 +95,6 @@ def plot_npp_metrics(
         ("Global CMLON\nstrength", global_strength, C_GLOBAL, "D"),
     ]
 
-    _N_ROWS = len(PANELS) + 1  # panels + derivative
-    fig, axes = plt.subplots(
-        _N_ROWS,
-        1,
-        figsize=(9, 12),
-        sharex=True,
-        gridspec_kw={
-            "hspace": 0.24,
-            "height_ratios": [1, 1, 1, 1, 1, 0.72],
-        },
-    )
-
     def _draw_background(ax):
         ax.axvspan(k_centre, _X_K_RIGHT, color=C_BAND, alpha=0.55, zorder=0)
         ax.axvline(k_centre, color=C_REF, linewidth=0.9, linestyle="--", zorder=1)
@@ -180,14 +144,6 @@ def plot_npp_metrics(
         )
         ax.set_xlim(ks.min() - 0.02, ks.max() + 0.02)
 
-    # ── Panels in fixed order, then derivative ─
-
-    for ax, panel in zip(axes[:-1], PANELS):
-        _plot_metric_ax(ax, *panel)
-
-    ax_d = axes[-1]
-    _plot_derivative_ax(ax_d)
-
     # ── Legend ────────────────────────────────────────────────────────────────────
 
     legend_handles = [
@@ -205,37 +161,9 @@ def plot_npp_metrics(
             label=(f"transition centre  k*\u202f=\u202f{k_centre:.2f}  "),
         ),
     ]
-    axes[0].legend(
-        handles=legend_handles,
-        fontsize=7,
-        loc="upper left",
-        ncol=1,
-        framealpha=0.9,
-        edgecolor="#d1d5db",
-        borderpad=0.35,
-        labelspacing=0.35,
-    )
+    # ── 2x3 panels + full-width legend row (two stacked entries) ─────────────────
 
-    # ── Title and save ────────────────────────────────────────────────────────────
-
-    fig.suptitle(
-        f"NPP phase transition - LON metric analysis (N={N}, {N_RUNS} ILS runs per k)",
-        fontsize=11,
-        fontweight="bold",
-        y=0.99,
-    )
-
-    # Room for suptitle, y-labels, and reference labels below the bottom axis (axes coords).
-    fig.subplots_adjust(left=0.18, right=0.97, top=0.94, bottom=0.14, hspace=0.28)
-
-    output_path = "npp_phase_transition_sweep.png"
-    fig.savefig(output_path, dpi=300, bbox_inches="tight", pad_inches=0.12)
-    plt.close(fig)
-    print(f"\nSaved \u2192 {output_path}")
-
-    # ── Alternate layout: 2×3 panels + full-width legend row (two stacked entries) ─
-
-    output_path_grid = Path(IMAGES_DIR / "npp_phase_transition_sweep_grid.png")
+    output_path_grid = Path(IMAGES_DIR) / "NPP_phase_transition_sweep.png"
     fig_g = plt.figure(figsize=(14, 8))
     gs = fig_g.add_gridspec(
         3,
