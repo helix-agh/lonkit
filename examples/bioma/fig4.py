@@ -1,7 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
 from problems import ackley4, griewank, schwefel2_26
 from utils import IMAGES_DIR, FunctionConfig, build_cmlon
 
@@ -31,56 +31,94 @@ FUNCTIONS = {
 N_VAR = 5
 
 
+def render_3d_cmlons(func_names, cmlons):
+    standard_camera = dict(
+        up=dict(x=0, y=0, z=1), center=dict(x=0, y=0, z=0), eye=dict(x=1.55, y=1.55, z=0.4)
+    )
+
+    axis_config = dict(
+        visible=True,
+        showgrid=True,
+        gridcolor="lightgray",
+        showline=True,
+        linecolor="black",
+        showbackground=True,
+        backgroundcolor="rgb(250, 250, 250)",
+        zeroline=True,
+        zerolinecolor="gray",
+        showticklabels=True,
+    )
+
+    plot_paths = []
+
+    for func_name in func_names:
+        viz = LONVisualizer()
+        fig = viz.plot_3d(cmlons[func_name])
+
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(**axis_config, title="X"),
+                yaxis=dict(**axis_config, title="Y"),
+                zaxis=dict(**axis_config, title="Fitness"),
+                camera=dict(**standard_camera),
+                aspectmode="cube",
+            ),
+            title=dict(
+                text=f"{func_name}",
+                x=0.5,
+                y=0.95,
+                xanchor="center",
+                font=dict(size=20),
+            ),
+            showlegend=False,
+            width=600,
+            height=600,
+            margin=dict(l=20, r=20, t=60, b=20),
+            paper_bgcolor="rgb(255, 255, 255)",
+            plot_bgcolor="rgb(255, 255, 255)",
+        )
+
+        path = Path(IMAGES_DIR) / f"fig4_{func_name.replace(' ', '_')}.png"
+        fig.write_image(path, scale=2)
+        plot_paths.append((func_name, path))
+        print(f"Saved 3D panel to {path}")
+
+    return plot_paths
+
+
+def merge_3d_plots(plot_paths):
+    merged_fig, axes = plt.subplots(1, len(plot_paths), figsize=(6 * len(plot_paths), 6))
+    if len(plot_paths) == 1:
+        axes = [axes]
+
+    for ax, (_, image_path) in zip(axes, plot_paths):
+        img = plt.imread(image_path)
+        ax.imshow(img)
+        ax.axis("off")
+
+    merged_fig.tight_layout()
+
+    final_path = Path(IMAGES_DIR) / "fig4.png"
+    merged_fig.savefig(final_path, dpi=200, bbox_inches="tight")
+    plt.close(merged_fig)
+    print(f"Successfully saved merged figure to {final_path}")
+
+
 def main() -> None:
     Path(IMAGES_DIR).mkdir(parents=True, exist_ok=True)
-
-    viz = LONVisualizer()
     func_names = list(FUNCTIONS.keys())
 
-    # Build CMLONs in parallel, then create 3D figures
     with ProcessPoolExecutor() as executor:
         futures = {
             func_name: executor.submit(build_cmlon, FUNCTIONS[func_name], N_VAR)
             for func_name in func_names
         }
+
         cmlons = {name: fut.result() for name, fut in futures.items()}
 
-    figures = []
-    for func_name in func_names:
-        fig = viz.plot_3d(cmlons[func_name])
-        figures.append(fig)
+    plot_paths = render_3d_cmlons(func_names, cmlons)
 
-    # Combine into a single 1x3 subplot figure
-    combined = make_subplots(
-        rows=1,
-        cols=3,
-        specs=[[{"type": "scene"}, {"type": "scene"}, {"type": "scene"}]],
-        subplot_titles=[
-            f"(a) {func_names[0]}",
-            f"(b) {func_names[1]}",
-            f"(c) {func_names[2]}",
-        ],
-        horizontal_spacing=0.02,
-    )
-
-    for idx, fig in enumerate(figures, start=1):
-        scene_name = f"scene{idx}" if idx > 1 else "scene"
-        for trace in fig.data:
-            trace.scene = scene_name
-            combined.add_trace(trace, row=1, col=idx)
-        # Copy camera / axis settings from original figure
-        if "scene" in fig.layout:
-            combined.layout[scene_name].update(fig.layout.scene)
-
-    combined.update_layout(
-        showlegend=False,
-        width=1800,
-        height=600,
-        margin=dict(l=0, r=0, t=60, b=0),
-    )
-
-    combined.write_image(f"{IMAGES_DIR}/fig4.png", scale=2)
-    combined.write_html(f"{IMAGES_DIR}/fig4.html")
+    merge_3d_plots(plot_paths)
 
 
 if __name__ == "__main__":
