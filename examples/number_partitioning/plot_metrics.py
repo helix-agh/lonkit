@@ -32,8 +32,6 @@ from utils import IMAGES_DIR
 
 from lonkit import ILSSampler, ILSSamplerConfig, LONConfig, NumberPartitioning
 
-# Hard region detection
-
 SMOOTH_WIDTH = 3  # uniform moving-average window (points); odd integer
 
 
@@ -50,9 +48,6 @@ def detect_via_derivative(ks, success, smooth_width=SMOOTH_WIDTH):
     k_centre = float(ks[peak_idx])
 
     return k_centre, deriv
-
-
-# Visualisatoin
 
 
 def plot_npp_metrics(
@@ -74,7 +69,8 @@ def plot_npp_metrics(
     C_BAND = "#fef08a"
     C_REF = "#6b7280"
 
-    # Marj hard region in the figure
+    # Mark the "hard" region in the figure
+
     _X_K_RIGHT = float(ks.max()) + 0.02
 
     _YLABEL_KW = {
@@ -144,7 +140,7 @@ def plot_npp_metrics(
         )
         ax.set_xlim(ks.min() - 0.02, ks.max() + 0.02)
 
-    # ── Legend ────────────────────────────────────────────────────────────────────
+    # Legend
 
     legend_handles = [
         mpatches.Patch(
@@ -161,7 +157,8 @@ def plot_npp_metrics(
             label=(f"transition centre  k*\u202f=\u202f{k_centre:.2f}  "),
         ),
     ]
-    # ── 2x3 panels + full-width legend row (two stacked entries) ─────────────────
+
+    # Grid arrengment
 
     output_path_grid = Path(IMAGES_DIR) / "NPP_phase_transition_sweep.png"
     fig_g = plt.figure(figsize=(14, 8))
@@ -202,6 +199,8 @@ def plot_npp_metrics(
 
     for ax in (ax_g00, ax_g01, ax_g02, ax_g10, ax_g11):
         ax.tick_params(axis="x", labelbottom=False)
+
+    # Titles and saving
 
     fig_g.suptitle(
         f"NPP phase transition - LON metric analysis (N={N}, {N_RUNS} ILS runs per k)",
