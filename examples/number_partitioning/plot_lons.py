@@ -1,9 +1,10 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from utils import IMAGES_DIR
+from npp_paths import IMAGES_DIR
 
 from lonkit import (
+    CMLON,
     ILSSampler,
     ILSSamplerConfig,
     LONConfig,
@@ -20,7 +21,7 @@ RANDOM_SEED = 42
 K_VALUES = [0.3, 0.7, 0.95]
 
 
-def render_3d_lons(cmlon_by_k: dict[float, object], output_dir: Path = Path(IMAGES_DIR)) -> None:
+def render_3d_lons(cmlon_by_k: dict[float, CMLON], output_dir: Path = Path(IMAGES_DIR)) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     standard_camera = dict(
@@ -82,7 +83,7 @@ def render_merged_lon_grid(k_values: list[float], output_dir: Path = Path(IMAGES
         ax_bottom.axis("off")
 
     fig.suptitle("Number Partitioning CMLON Views", fontsize=16, y=0.98)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
     fig.savefig(output_dir / "NPP_merged_cmlon_views.png", dpi=200)
     plt.close(fig)
 

@@ -27,8 +27,8 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+from npp_paths import IMAGES_DIR
 from scipy.ndimage import uniform_filter1d
-from utils import IMAGES_DIR
 
 from lonkit import ILSSampler, ILSSamplerConfig, LONConfig, NumberPartitioning
 
