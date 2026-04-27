@@ -60,7 +60,6 @@ def plot_npp_metrics(
     k_centre,
     deriv_signal,
 ):
-
     C_LINE = "#1a1a2e"
     C_GLOBAL = "#2563eb"
     C_SINK = "#dc2626"
