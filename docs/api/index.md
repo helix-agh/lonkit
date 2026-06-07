@@ -36,6 +36,7 @@ Iterated Local Search sampling and built-in discrete problems.
 - [`DiscreteProblem`](discrete.md#lonkit.discrete.problems.problem.DiscreteProblem) - Abstract base for discrete problems
 - [`BitstringProblem`](discrete.md#lonkit.discrete.problems.bitstring.BitstringProblem) - Base class for bitstring problems
 - [`NumberPartitioning`](discrete.md#lonkit.discrete.problems.bitstring.NumberPartitioning) - Number Partitioning Problem
+- [`NKLandscape`](discrete.md#lonkit.discrete.problems.bitstring.NKLandscape) - Kauffman's NK Landscape benchmark
 - [`OneMax`](discrete.md#lonkit.discrete.problems.bitstring.OneMax) - OneMax benchmark
 - [`ILSSampler`](discrete.md#lonkit.discrete.sampling.ILSSampler) - ILS sampling class
 - [`ILSSamplerConfig`](discrete.md#lonkit.discrete.sampling.ILSSamplerConfig) - ILS configuration

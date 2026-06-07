@@ -5,7 +5,13 @@ from lonkit.continuous.sampling import (
     compute_lon,
 )
 from lonkit.continuous.step_size import StepSizeEstimator, StepSizeEstimatorConfig, StepSizeResult
-from lonkit.discrete.problems import BitstringProblem, DiscreteProblem, NumberPartitioning, OneMax
+from lonkit.discrete.problems import (
+    BitstringProblem,
+    DiscreteProblem,
+    NKLandscape,
+    NumberPartitioning,
+    OneMax,
+)
 from lonkit.discrete.sampling import ILSResult, ILSSampler, ILSSamplerConfig
 from lonkit.lon import CMLON, LON, LONConfig
 from lonkit.visualization import LONVisualizer
@@ -24,6 +30,7 @@ __all__ = [
     "ILSSamplerConfig",
     "LONConfig",
     "LONVisualizer",
+    "NKLandscape",
     "NumberPartitioning",
     "OneMax",
     "StepSizeEstimator",

@@ -13,7 +13,7 @@ lonkit is a Python library for constructing, analyzing, and visualizing Local Op
 ## Features
 
 - **Basin-Hopping Sampling**: Efficient exploration of continuous fitness landscapes using configurable Basin-Hopping
-- **Iterated Local Search**: Discrete LON construction via ILS with built-in problems (Number Partitioning, OneMax)
+- **Iterated Local Search**: Discrete LON construction via ILS with built-in problems (Number Partitioning, NK Landscape, OneMax)
 - **LON Construction**: Automatic construction of Local Optima Networks from sampling data
 - **CMLON Support**: Compressed Monotonic LONs for cleaner landscape analysis
 - **Rich Metrics**: Compute landscape metrics including funnel analysis and neutrality

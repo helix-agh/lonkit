@@ -48,6 +48,29 @@ problem = NumberPartitioning(n=4, weights=[7, 5, 6, 4])
 
 **Fitness:** `|sum(A) - sum(B)|` (minimization, optimal = 0)
 
+### NKLandscape
+
+**NKLandscape** is Kauffman's NK benchmark: maximize the average contribution
+of `N` bit-dependent fitness components, where each component depends on its own
+bit and `K` interacting bits.
+
+```python
+from lonkit import NKLandscape
+
+problem = NKLandscape(n=20, k=4, instance_seed=1)
+```
+
+**Parameters:**
+
+- `n`: Length of the bitstring
+- `k`: Number of epistatic interactions per position. Must be in `[0, n - 1]`.
+- `instance_seed`: Seed for generating the fixed landscape instance
+- `neighbor_model`: `"adjacent"` for cyclic adjacent interactions or `"random"` for random distinct neighbors (default: `"adjacent"`)
+- `n_perturbation_flips`: Number of random bit flips per perturbation (default: 2)
+- `first_improvement`: Use first-improvement hill climbing (default: True)
+
+**Fitness:** Average contribution in `[0, 1)` (maximization)
+
 ### OneMax
 
 **OneMax** is a simple benchmark: maximize the number of 1-bits in a bitstring.
