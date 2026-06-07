@@ -294,6 +294,12 @@ class NKLandscape(BitstringProblem):
 
         rng = np.random.default_rng(instance_seed)
         self.neighbors = self._build_neighbors(rng)
+        self._dependencies = np.asarray(
+            [[pos, *neighbors] for pos, neighbors in enumerate(self.neighbors)],
+            dtype=np.intp,
+        )
+        self._index_weights = 1 << np.arange(k, -1, -1, dtype=np.int64)
+        self._table_rows = np.arange(n, dtype=np.intp)
         # Contribution tables: one row of 2^(k+1) random values per position.
         self.tables = rng.random(size=(n, 1 << (k + 1)))
         # For each bit, which positions' contributions depend on it (for delta).
@@ -324,27 +330,24 @@ class NKLandscape(BitstringProblem):
             idx = (idx << 1) | solution[j]
         return idx
 
+    def _contribution(self, solution: list[int], pos: int) -> float:
+        """Return the Python float contribution for position `pos`."""
+        return float(self.tables[pos][self._contribution_index(solution, pos)])
+
     def evaluate(self, solution: list[int]) -> float:
-        total = 0.0
-        for pos in range(self.n):
-            total += self.tables[pos][self._contribution_index(solution, pos)]
-        return total / self.n
+        bits = np.asarray(solution, dtype=np.int64)[self._dependencies]
+        indices = bits @ self._index_weights
+        return float(self.tables[self._table_rows, indices].mean())
 
     def delta_evaluate(self, solution: list[int], index: int) -> float | None:
         """
         Delta evaluation: flipping bit `index` only changes the
         contributions of positions that depend on it.
         """
-        old_total = sum(
-            float(self.tables[pos][self._contribution_index(solution, pos)])
-            for pos in self._affected[index]
-        )
+        old_total = sum(self._contribution(solution, pos) for pos in self._affected[index])
         solution[index] = 1 - solution[index]
         try:
-            new_total = sum(
-                float(self.tables[pos][self._contribution_index(solution, pos)])
-                for pos in self._affected[index]
-            )
+            new_total = sum(self._contribution(solution, pos) for pos in self._affected[index])
         finally:
             solution[index] = 1 - solution[index]
         return (new_total - old_total) / self.n

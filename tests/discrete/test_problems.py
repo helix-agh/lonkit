@@ -86,6 +86,7 @@ class TestNKLandscape:
         for _ in range(50):
             sol = p.random_solution(rng)
             fit = p.evaluate(sol)
+            assert type(fit) is float
             assert 0.0 <= fit < 1.0
 
     def test_evaluate_is_deterministic(self):
