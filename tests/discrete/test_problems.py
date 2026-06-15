@@ -170,3 +170,52 @@ class TestNKLandscape:
     def test_invalid_neighbor_model_raises(self):
         with pytest.raises(ValueError, match="neighbor_model"):
             NKLandscape(n=4, k=1, instance_seed=0, neighbor_model="circular")
+
+    def test_evaluate_uses_bit_followed_by_neighbors_msb_order(self):
+        p = NKLandscape(n=4, k=2, instance_seed=0, neighbor_model="adjacent")
+
+        # adjacent dependencies:
+        # pos 0 -> [0, 1, 2]
+        # pos 1 -> [1, 2, 3]
+        # pos 2 -> [2, 3, 0]
+        # pos 3 -> [3, 0, 1]
+        assert p._dependencies.tolist() == [
+            [0, 1, 2],
+            [1, 2, 3],
+            [2, 3, 0],
+            [3, 0, 1],
+        ]
+
+        # Make table value equal to its index.
+        p.tables[:] = np.arange(2 ** (p.k + 1))
+
+        x = [1, 0, 1, 0]
+
+        # pos 0: [1,0,1] -> 5
+        # pos 1: [0,1,0] -> 2
+        # pos 2: [1,0,1] -> 5
+        # pos 3: [0,1,0] -> 2
+        expected = (5 + 2 + 5 + 2) / 4
+
+        assert p.evaluate(x) == pytest.approx(expected)
+
+    def test_k_equals_n_minus_one_hand_computed(self):
+        p = NKLandscape(n=3, k=2, instance_seed=0, neighbor_model="adjacent")
+
+        # For n=3, k=2, every contribution depends on all bits.
+        assert p._dependencies.tolist() == [
+            [0, 1, 2],
+            [1, 2, 0],
+            [2, 0, 1],
+        ]
+
+        p.tables[:] = np.arange(2 ** (p.k + 1))
+
+        x = [1, 0, 1]
+
+        # pos 0: [1,0,1] -> 5
+        # pos 1: [0,1,1] -> 3
+        # pos 2: [1,1,0] -> 6
+        expected = (5 + 3 + 6) / 3
+
+        assert p.evaluate(x) == pytest.approx(expected)
