@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.0
+
+Adds Kauffman's NK Landscape as a built-in discrete benchmark problem.
+
+### Highlights
+
+- Added `NKLandscape`, a tunable family of rugged fitness landscapes over bitstrings:
+  - `k` controls ruggedness, from smooth (`k=0`) to maximally rugged (`k=n-1`).
+  - `neighbor_model` selects `"adjacent"` (cyclic) or `"random"` distinct epistatic neighbors.
+  - Fixed instance (neighbor structure and contribution tables) generated from `instance_seed` for reproducibility.
+  - Vectorized `evaluate()` and O(affected-positions) `delta_evaluate()` for fast hill climbing.
+- This is a maximization problem (optimal fitness close to 1.0).
+
+### API and Behavior Changes
+
+- Package now exports `NKLandscape`.
+
+### Documentation
+
+- Added `NKLandscape` to the user guide and API reference.
+
 ## 0.3.0
 
 Third public release adding support for discrete optimization problems via Iterated Local Search (ILS).
