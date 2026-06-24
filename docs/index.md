@@ -32,7 +32,7 @@ Local Optima Networks (LONs) are graph-based models that capture the global stru
 
     ---
 
-    Discrete LON construction via ILS with built-in problems (Number Partitioning, OneMax) and custom problem support
+    Discrete LON construction via ILS with built-in problems (Number Partitioning, NK Landscape, OneMax) and custom problem support
 
 - **LON Construction**
 

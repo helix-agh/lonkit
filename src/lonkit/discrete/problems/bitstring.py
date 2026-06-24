@@ -1,5 +1,6 @@
 import math
 import warnings
+from typing import Literal
 
 import numpy as np
 
@@ -223,6 +224,133 @@ class NumberPartitioning(BitstringProblem):
         cost_a = sum(self.weights[i] for i in range(self.n) if solution[i] == 0)
         cost_b = sum(self.weights[i] for i in range(self.n) if solution[i] == 1)
         return float(abs(cost_a - cost_b))
+
+
+class NKLandscape(BitstringProblem):
+    """
+    Kauffman's NK Landscape.
+
+    A tunable family of rugged fitness landscapes over bitstrings of length
+    ``N``. Each of the ``N`` positions contributes a fitness component that
+    depends on its own bit plus ``K`` other ("epistatic") bits. The overall
+    fitness is the average of the ``N`` contributions::
+
+        fitness(x) = (1 / N) * sum_i  f_i(x_i, x_{neighbors(i)})
+
+    Each component ``f_i`` is defined by a lookup table of ``2^(K+1)`` values
+    drawn uniformly from ``[0, 1)`` and indexed by the ``(K + 1)``-bit pattern
+    formed by bit ``i`` followed by its ``K`` neighbors.
+
+    ``K`` tunes the ruggedness:
+    - ``K = 0`` gives a smooth, single-optimum landscape (each bit independent).
+    - ``K = N - 1`` gives a maximally rugged, random landscape.
+
+    This is a **maximization** problem (optimal fitness close to 1.0).
+
+    The instance (neighbor structure and contribution tables) is fixed at
+    construction time from ``instance_seed``, so two problems built with the
+    same parameters are identical.
+
+    Args:
+        n: Length of the bitstring. Must be > 0.
+        k: Number of epistatic interactions per position. Must be in [0, n-1].
+        instance_seed: Seed for generating the neighbor structure (random model)
+            and the random contribution tables. Required for reproducibility.
+        neighbor_model: ``"adjacent"`` (each position interacts with its ``K``
+            cyclically-following neighbors) or ``"random"`` (``K`` distinct
+            positions drawn uniformly at random, excluding the position itself).
+            Default: ``"adjacent"``.
+        n_perturbation_flips: Number of random flips per perturbation (default: 2).
+        first_improvement: If True, local search uses first-improvement
+            hill climbing (stochastic -- scan order randomized each pass).
+            If False, uses best-improvement (deterministic). Default: True.
+    """
+
+    @property
+    def minimize(self) -> bool:
+        return False
+
+    def __init__(
+        self,
+        n: int,
+        k: int,
+        instance_seed: int,
+        neighbor_model: Literal["adjacent", "random"] = "adjacent",
+        n_perturbation_flips: int = 2,
+        first_improvement: bool = True,
+    ):
+        super().__init__(n, n_perturbation_flips, first_improvement)
+        if instance_seed is None:
+            raise ValueError("instance_seed is required for NKLandscape")
+        if k < 0 or k > n - 1:
+            raise ValueError(f"k must be in [0, {n - 1}], got {k}")
+        if neighbor_model not in ("adjacent", "random"):
+            raise ValueError(
+                f"neighbor_model must be 'adjacent' or 'random', got {neighbor_model!r}"
+            )
+        self.k = k
+        self.instance_seed = instance_seed
+        self.neighbor_model = neighbor_model
+
+        rng = np.random.default_rng(instance_seed)
+        self.neighbors = self._build_neighbors(rng)
+        self._dependencies = np.asarray(
+            [[pos, *neighbors] for pos, neighbors in enumerate(self.neighbors)],
+            dtype=np.intp,
+        )
+        self._index_weights = 1 << np.arange(k, -1, -1, dtype=np.int64)
+        self._table_rows = np.arange(n, dtype=np.intp)
+        # Contribution tables: one row of 2^(k+1) random values per position.
+        self.tables = rng.random(size=(n, 1 << (k + 1)))
+        # For each bit, which positions' contributions depend on it (for delta).
+        self._affected: list[list[int]] = [[] for _ in range(n)]
+        for pos in range(n):
+            self._affected[pos].append(pos)
+            for j in self.neighbors[pos]:
+                self._affected[j].append(pos)
+
+    def _build_neighbors(self, rng: np.random.Generator) -> list[list[int]]:
+        """Return the list of K epistatic neighbors for each position."""
+        if self.neighbor_model == "adjacent":
+            return [
+                [(i + offset) % self.n for offset in range(1, self.k + 1)] for i in range(self.n)
+            ]
+        # random model: K distinct positions, excluding i itself
+        neighbors: list[list[int]] = []
+        for i in range(self.n):
+            candidates = [j for j in range(self.n) if j != i]
+            chosen = rng.choice(candidates, size=self.k, replace=False)
+            neighbors.append(sorted(int(j) for j in chosen))
+        return neighbors
+
+    def _contribution_index(self, solution: list[int], pos: int) -> int:
+        """Build the table index from bit `pos` followed by its neighbors."""
+        idx = solution[pos]
+        for j in self.neighbors[pos]:
+            idx = (idx << 1) | solution[j]
+        return idx
+
+    def _contribution(self, solution: list[int], pos: int) -> float:
+        """Return the Python float contribution for position `pos`."""
+        return float(self.tables[pos][self._contribution_index(solution, pos)])
+
+    def evaluate(self, solution: list[int]) -> float:
+        bits = np.asarray(solution, dtype=np.int64)[self._dependencies]
+        indices = bits @ self._index_weights
+        return float(self.tables[self._table_rows, indices].mean())
+
+    def delta_evaluate(self, solution: list[int], index: int) -> float | None:
+        """
+        Delta evaluation: flipping bit `index` only changes the
+        contributions of positions that depend on it.
+        """
+        old_total = sum(self._contribution(solution, pos) for pos in self._affected[index])
+        solution[index] = 1 - solution[index]
+        try:
+            new_total = sum(self._contribution(solution, pos) for pos in self._affected[index])
+        finally:
+            solution[index] = 1 - solution[index]
+        return (new_total - old_total) / self.n
 
 
 class OneMax(BitstringProblem):
