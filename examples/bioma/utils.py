@@ -230,7 +230,7 @@ def save_metrics_figure(
         fontsize=10,
     )
 
-    fig.tight_layout(rect=[0, 0.06, 1, 1])
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"Saved {output_path}")
