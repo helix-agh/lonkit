@@ -1,6 +1,7 @@
 <div align="center">
-    <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/icon.png" alt="lonkit" width="800">
+    <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/icon.jpg" alt="lonkit" width="800">
 </div>
+
 
 [![PyPI version](https://badge.fury.io/py/lonkit.svg)](https://pypi.org/project/lonkit/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
