@@ -27,7 +27,7 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
-from npp_paths import IMAGES_DIR
+from npp_paths import IMAGES_DIR, SWEEP_DATA_DIR, save_metrics_csv, save_traces
 from scipy.ndimage import uniform_filter1d
 
 from lonkit import ILSSampler, ILSSamplerConfig, LONConfig, NumberPartitioning
@@ -229,6 +229,7 @@ def main():
     print(f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS})\n")
 
     records = []
+    traces = {}
     sampler_config = ILSSamplerConfig(n_runs=N_RUNS, n_iter_no_change=N_ITER, seed=RANDOM_SEED)
     lon_config = LONConfig(eq_atol=EQ_ATOL)
 
@@ -236,6 +237,7 @@ def main():
         problem = NumberPartitioning(n=N, k=k, instance_seed=INSTANCE_SEED)
         sampler = ILSSampler(sampler_config)
         result = sampler.sample(problem)
+        traces[f"NPP_k{k:.3f}"] = result.trace_df
 
         lon = sampler.sample_to_lon(result, lon_config)
         cmlon = lon.to_cmlon()
@@ -256,6 +258,9 @@ def main():
             f"  k={k:.3f}  optima={m['n_optima']:>3}  funnels={m['n_funnels']:>2}  "
             f"success={m['success']:.0%}"
         )
+
+    save_traces(traces, SWEEP_DATA_DIR)
+    save_metrics_csv(records, Path(SWEEP_DATA_DIR) / "metrics.csv")
 
     ks = np.array([r["k"] for r in records])
     n_optima = np.array([r["n_optima"] for r in records])
