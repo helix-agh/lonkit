@@ -6,7 +6,7 @@ description: lonkit - Python library for constructing, analyzing, and visualizin
 
 **Local Optima Networks**
 
-![lonkit](assets/icon.png){ width="100%" }
+![lonkit](assets/icon.jpg){ width="100%" }
 
 lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for both continuous and discrete optimization problems.
 
