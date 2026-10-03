@@ -370,11 +370,18 @@ class CMLON:
         Create CMLON from LON by contracting neutral nodes.
 
         The compression process:
-        1. Mark edges as "improving" (f2 < f1) or "equal" (f2 == f1)
-        2. Create subgraph of equal-fitness edges
-        3. Find weakly connected components
-        4. Contract vertices using component membership
-        5. Combine parallel edge weights
+        1. Classify edges using the optimization direction and equality tolerance
+        2. Remove worsening edges (with a warning)
+        3. Create subgraph of equal-fitness edges
+        4. Find weakly connected components
+        5. Contract vertices using component membership
+        6. Combine parallel edge weights
+        7. Repeat steps 3-6 until no equal-fitness edges remain. Approximate equality
+           is not transitive, so a contracted component can become equal to a
+           neighbour it was not equal to before contraction.
+        8. Remove edges that became worsening between component representatives
+           (with a warning). Such edges cannot be merged, so their target may
+           become an isolated sink.
 
         Args:
             lon: Source LON instance.
@@ -402,34 +409,79 @@ class CMLON:
         f1 = [fits[src] for src, _ in el]
         f2 = [fits[tgt] for _, tgt in el]
 
-        # Mark edge types and find equal-fitness edges
+        # Mark edge types
         edge_types = []
-        equal_edge_indices = []
-        for i, (fit1, fit2) in enumerate(zip(f1, f2)):
+        for fit1, fit2 in zip(f1, f2):
             if lon._allclose(fit2, fit1):
                 edge_types.append("equal")
-                equal_edge_indices.append(i)
             elif (fit2 < fit1) if lon.minimize else (fit2 > fit1):
                 edge_types.append("improving")
             else:
                 edge_types.append("worsening")
         mlon.es["type"] = edge_types
 
-        # Create subgraph of equal-fitness edges (keep all vertices)
-        if equal_edge_indices:
-            gnn = mlon.subgraph_edges(equal_edge_indices, delete_vertices=False)
-        else:
-            gnn = ig.Graph(n=mlon.vcount(), directed=True)
+        # Remove worsening edges before compressing neutral components
+        worsening_edge_indices = [i for i, t in enumerate(edge_types) if t == "worsening"]
+        if worsening_edge_indices:
+            max_worsening = max(abs(f2[i] - f1[i]) for i in worsening_edge_indices)
+            warnings.warn(
+                f"Removed {len(worsening_edge_indices)} worsening edge(s) from the LON "
+                f"(max fitness difference: {max_worsening:.6g}) to construct a monotonic CMLON. "
+                "These may come from a non-elitist sampler or from node deduplication with "
+                "inconsistent fitness values (consider setting `fitness_precision`).",
+                UserWarning,
+                stacklevel=2,
+            )
+            mlon.delete_edges(worsening_edge_indices)
 
-        # Find weakly connected components
-        nn_memb = gnn.components(mode="weak").membership
+        # Contract neutral components until no equal-fitness edges remain. Approximate
+        # equality is not transitive, so a contracted component (represented by the
+        # fitness of its first vertex) can become equal to a neighbour that was not
+        # equal to any of the vertices it was connected to before contraction.
+        cmlon_graph = mlon
+        while True:
+            equal_edge_indices = [
+                edge.index
+                for edge in cmlon_graph.es
+                if lon._allclose(
+                    cmlon_graph.vs[edge.source]["Fitness"], cmlon_graph.vs[edge.target]["Fitness"]
+                )
+            ]
+            if not equal_edge_indices:
+                break
 
-        # Contract vertices using component membership
-        cmlon_graph = _contract_vertices(
-            mlon,
-            nn_memb,
-            vertex_attr_comb={"Fitness": "first", "Count": "sum", "name": "first"},
-        )
+            # Find weakly connected components of the equal-fitness subgraph
+            gnn = cmlon_graph.subgraph_edges(equal_edge_indices, delete_vertices=False)
+            nn_memb = gnn.components(mode="weak").membership
+
+            # Contract vertices using component membership
+            cmlon_graph = _contract_vertices(
+                cmlon_graph,
+                nn_memb,
+                vertex_attr_comb={"Fitness": "first", "Count": "sum", "name": "first"},
+            )
+
+        # Contraction can also turn an improving edge into a worsening one between
+        # component representatives; such edges cannot be merged and are removed.
+        compressed_fits = cmlon_graph.vs["Fitness"]
+        worsening_after_compression = [
+            edge.index
+            for edge in cmlon_graph.es
+            if not (
+                compressed_fits[edge.target] < compressed_fits[edge.source]
+                if lon.minimize
+                else compressed_fits[edge.target] > compressed_fits[edge.source]
+            )
+        ]
+        if worsening_after_compression:
+            warnings.warn(
+                f"Removed {len(worsening_after_compression)} worsening edge(s) after "
+                "neutral-component compression to construct a monotonic CMLON. Approximate "
+                "equality is not transitive, so contraction can change an edge's classification.",
+                UserWarning,
+                stacklevel=2,
+            )
+            cmlon_graph.delete_edges(worsening_after_compression)
 
         return cls(
             graph=cmlon_graph,
