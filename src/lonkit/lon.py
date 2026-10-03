@@ -80,6 +80,12 @@ class LON:
         Returns:
             `LON` instance with constructed graph.
 
+        Note:
+            Edges are kept exactly as recorded, so the LON is not required to be monotonic.
+            Worsening edges can appear if the sampler accepts non-improving moves, or when
+            the same node is recorded with different fitness values and these are aggregated
+            (see `LONConfig.fitness_aggregation`). `CMLON.from_lon()` removes such edges.
+
         Raises:
             ValueError: If fitness_aggregation is `"strict"` and duplicates are detected,
                 or if `max_fitness_deviation` threshold is exceeded.
