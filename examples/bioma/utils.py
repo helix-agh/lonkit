@@ -20,6 +20,22 @@ DEFAULT_COORDINATE_PRECISION = 2
 DEFAULT_SEED = 42
 IMAGES_DIR = "images"
 
+# Figure sizing for A4 papers: ~16 cm text width (2.5 cm margins), so figures
+# are drawn at their final printed size and fonts stay readable.
+PAGE_WIDTH_IN = 6.3
+FONT_SIZE = 9
+SAVE_DPI = 300
+PAPER_RC = {
+    "font.size": FONT_SIZE,
+    "axes.titlesize": FONT_SIZE,
+    "axes.labelsize": FONT_SIZE,
+    "xtick.labelsize": FONT_SIZE - 1,
+    "ytick.labelsize": FONT_SIZE - 1,
+    "legend.fontsize": FONT_SIZE,
+}
+# Panel width (inches) that LONVisualizer's point-based node/edge sizes are tuned for.
+REFERENCE_PANEL_IN = 8.0
+
 
 @dataclass
 class FunctionConfig:
@@ -101,6 +117,7 @@ def build_all(
     return results
 
 
+@plt.rc_context(PAPER_RC)
 def save_network_grid(
     results: dict[tuple[str, int], tuple[CMLON, dict]],
     functions: dict[str, FunctionConfig],
@@ -115,11 +132,13 @@ def save_network_grid(
 
     n_rows = len(func_names)
     n_cols = max(len(d) for d in all_dims)
+    panel_in = PAGE_WIDTH_IN / n_cols
+    # Node/edge sizes are in points, so shrink them along with the panels.
+    scale = panel_in / REFERENCE_PANEL_IN
     fig, axes = plt.subplots(
         n_rows,
         n_cols,
-        figsize=(8 * n_cols, 8 * n_rows),
-        dpi=150,
+        figsize=(PAGE_WIDTH_IN, (panel_in + 0.35) * n_rows),
         squeeze=False,
     )
 
@@ -158,37 +177,37 @@ def save_network_grid(
                         arrowprops=dict(
                             arrowstyle=f"->,head_length={viz.arrow_size},head_width={viz.arrow_size}",
                             color="dimgray",
-                            lw=edge_widths[i],
-                            shrinkA=node_sizes[src_idx] * 2,
-                            shrinkB=node_sizes[tgt_idx] * 2,
+                            lw=max(edge_widths[i] * scale, 0.3),
+                            shrinkA=node_sizes[src_idx] * 2 * scale,
+                            shrinkB=node_sizes[tgt_idx] * 2 * scale,
                         ),
                     )
 
-            scatter_sizes = [s**2 * 10 for s in node_sizes]
+            scatter_sizes = [(s * scale) ** 2 * 10 for s in node_sizes]
             ax.scatter(
                 layout[:, 0],
                 layout[:, 1],
                 s=scatter_sizes,
                 c=node_colors,
                 edgecolors="black",
-                linewidths=0.5,
+                linewidths=0.3,
                 zorder=10,
             )
 
             label = labels[label_idx]
             ax.set_title(
-                f"({label}) {func_name}, $n$ = {n_var}, success = {success:.2f}",
-                fontsize=10,
-                pad=6,
+                f"({label}) {func_name}, $n$ = {n_var}\nsuccess = {success:.2f}",
+                pad=3,
             )
             label_idx += 1
 
-    plt.tight_layout()
-    fig.savefig(str(output_path), dpi=150, bbox_inches="tight", facecolor="white")
+    fig.tight_layout(pad=0.2, h_pad=0.6, w_pad=0.4)
+    fig.savefig(str(output_path), dpi=SAVE_DPI, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"Saved {output_path}")
 
 
+@plt.rc_context(PAPER_RC)
 def save_metrics_figure(
     results: dict[tuple[str, int], tuple[CMLON, dict]],
     functions: dict[str, FunctionConfig],
@@ -196,7 +215,7 @@ def save_metrics_figure(
     output_path: Path,
 ) -> None:
     """Create a 2x3 grid comparing metrics across dimensions for all functions."""
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8), dpi=150)
+    fig, axes = plt.subplots(2, 3, figsize=(PAGE_WIDTH_IN, 4.2))
     func_names = list(functions.keys())
 
     for panel_idx, (metric_key, metric_label) in enumerate(METRIC_PANELS):
@@ -213,8 +232,8 @@ def save_metrics_figure(
                 color=style["color"],
                 marker=style["marker"],
                 label=func_name,
-                linewidth=1.5,
-                markersize=7,
+                linewidth=1.2,
+                markersize=4,
             )
 
         ax.set_xlabel("Dimension")
@@ -228,10 +247,9 @@ def save_metrics_figure(
         loc="lower center",
         ncol=len(func_names),
         frameon=False,
-        fontsize=10,
     )
 
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
-    fig.savefig(str(output_path), dpi=150, bbox_inches="tight", facecolor="white")
+    fig.tight_layout(rect=(0, 0.06, 1, 1), pad=0.3, h_pad=0.8, w_pad=0.8)
+    fig.savefig(str(output_path), dpi=SAVE_DPI, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"Saved {output_path}")
