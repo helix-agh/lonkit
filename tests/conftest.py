@@ -27,6 +27,11 @@ def griewank(x: np.ndarray) -> float:
     return float(np.sum(x**2 / 4000.0) - np.prod(np.cos(x / np.sqrt(i))) + 1.0)
 
 
+def schwefel2_26(x: np.ndarray) -> float:
+    x = np.asarray(x, dtype=float)
+    return float(-np.sum(x * np.sin(np.sqrt(np.abs(x)))))
+
+
 @pytest.fixture(scope="session")
 def sphere_lon() -> LON:
     sampler = BasinHoppingSampler(DEFAULT_CONFIG)

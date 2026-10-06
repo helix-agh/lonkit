@@ -80,6 +80,12 @@ class LON:
         Returns:
             `LON` instance with constructed graph.
 
+        Note:
+            Edges are kept exactly as recorded, so the LON is not required to be monotonic.
+            Worsening edges can appear if the sampler accepts non-improving moves, or when
+            the same node is recorded with different fitness values and these are aggregated
+            (see `LONConfig.fitness_aggregation`). `CMLON.from_lon()` removes such edges.
+
         Raises:
             ValueError: If fitness_aggregation is `"strict"` and duplicates are detected,
                 or if `max_fitness_deviation` threshold is exceeded.
@@ -370,11 +376,20 @@ class CMLON:
         Create CMLON from LON by contracting neutral nodes.
 
         The compression process:
-        1. Mark edges as "improving" (f2 < f1) or "equal" (f2 == f1)
-        2. Create subgraph of equal-fitness edges
-        3. Find weakly connected components
-        4. Contract vertices using component membership
-        5. Combine parallel edge weights
+        1. Classify edges using the optimization direction and equality tolerance
+        2. Remove worsening edges (with a warning)
+        3. Create subgraph of equal-fitness edges
+        4. Find weakly connected components
+        5. Contract vertices using component membership, keeping the best fitness
+           in each component (minimum for minimization, maximum for maximization)
+           and the name of the vertex with that fitness (first in graph order on ties)
+        6. Combine parallel edge weights
+        7. Repeat steps 3-6 until no equal-fitness edges remain. Approximate equality
+           is not transitive, so a contracted component can become equal to a
+           neighbour it was not equal to before contraction.
+        8. Remove edges that became worsening between component representatives
+           (with a warning). Such edges cannot be merged, so their target may
+           become an isolated sink.
 
         Args:
             lon: Source LON instance.
@@ -396,40 +411,77 @@ class CMLON:
         mlon = lon.graph.copy()
         mlon.vs["Count"] = [1] * mlon.vcount()
 
-        el = mlon.get_edgelist()
-        fits = mlon.vs["Fitness"]
+        f1, f2 = _edge_fitness(mlon)
 
-        f1 = [fits[src] for src, _ in el]
-        f2 = [fits[tgt] for _, tgt in el]
-
-        # Mark edge types and find equal-fitness edges
+        # Mark edge types
         edge_types = []
-        equal_edge_indices = []
-        for i, (fit1, fit2) in enumerate(zip(f1, f2)):
+        for fit1, fit2 in zip(f1, f2):
             if lon._allclose(fit2, fit1):
                 edge_types.append("equal")
-                equal_edge_indices.append(i)
             elif (fit2 < fit1) if lon.minimize else (fit2 > fit1):
                 edge_types.append("improving")
             else:
                 edge_types.append("worsening")
         mlon.es["type"] = edge_types
 
-        # Create subgraph of equal-fitness edges (keep all vertices)
-        if equal_edge_indices:
-            gnn = mlon.subgraph_edges(equal_edge_indices, delete_vertices=False)
-        else:
-            gnn = ig.Graph(n=mlon.vcount(), directed=True)
+        # Remove worsening edges before compressing neutral components. They come from
+        # samplers that accept worse solutions, or from merging duplicate nodes whose
+        # fitness values differ slightly.
+        worsening_edge_indices = [i for i, t in enumerate(edge_types) if t == "worsening"]
+        if worsening_edge_indices:
+            max_worsening = max(abs(f2[i] - f1[i]) for i in worsening_edge_indices)
+            warnings.warn(
+                f"Removed {len(worsening_edge_indices)} worsening edge(s) from the LON "
+                f"(max fitness difference: {max_worsening:.6g}) to construct a monotonic CMLON. "
+                "If this is unexpected, consider setting `fitness_precision`.",
+                UserWarning,
+                stacklevel=2,
+            )
+            mlon.delete_edges(worsening_edge_indices)
 
-        # Find weakly connected components
-        nn_memb = gnn.components(mode="weak").membership
+        # Contract neutral components until no equal-fitness edges remain. Approximate
+        # equality is not transitive, so a contracted component (represented by the
+        # best fitness of its vertices) can become equal to a neighbour that was not
+        # equal to any of the vertices it was connected to before contraction.
+        cmlon_graph = mlon
+        while True:
+            f_src, f_tgt = _edge_fitness(cmlon_graph)
+            equal_edge_indices = np.flatnonzero(
+                np.isclose(f_src, f_tgt, atol=lon.eq_atol, rtol=0.0)
+            ).tolist()
+            if not equal_edge_indices:
+                break
 
-        # Contract vertices using component membership
-        cmlon_graph = _contract_vertices(
-            mlon,
-            nn_memb,
-            vertex_attr_comb={"Fitness": "first", "Count": "sum", "name": "first"},
-        )
+            # Find weakly connected components of the equal-fitness subgraph
+            gnn = cmlon_graph.subgraph_edges(equal_edge_indices, delete_vertices=False)
+            nn_memb = gnn.components(mode="weak").membership
+
+            # Contract vertices using component membership
+            cmlon_graph = _contract_vertices(
+                cmlon_graph,
+                nn_memb,
+                vertex_attr_comb={
+                    "Fitness": "min" if lon.minimize else "max",
+                    "Count": "sum",
+                    "name": "min_fitness" if lon.minimize else "max_fitness",
+                },
+            )
+
+        # Contraction can also turn an improving edge into a worsening one between
+        # component representatives: approximate equality is not transitive, so
+        # contraction can change an edge's classification. Such edges cannot be
+        # merged and are removed.
+        f_src, f_tgt = _edge_fitness(cmlon_graph)
+        improving = f_tgt < f_src if lon.minimize else f_tgt > f_src
+        worsening_after_compression = np.flatnonzero(~improving).tolist()
+        if worsening_after_compression:
+            warnings.warn(
+                f"Removed {len(worsening_after_compression)} worsening edge(s) after "
+                "neutral-component compression to construct a monotonic CMLON.",
+                UserWarning,
+                stacklevel=2,
+            )
+            cmlon_graph.delete_edges(worsening_after_compression)
 
         return cls(
             graph=cmlon_graph,
@@ -618,6 +670,16 @@ class CMLON:
         return {**network_metrics, **performance_metrics}
 
 
+def _edge_fitness(graph: ig.Graph) -> tuple[np.ndarray, np.ndarray]:
+    """Return arrays of source and target vertex fitness for each edge, in edge order."""
+    fits = graph.vs["Fitness"]
+    el = graph.get_edgelist()
+    return (
+        np.array([fits[src] for src, _ in el], dtype=float),
+        np.array([fits[tgt] for _, tgt in el], dtype=float),
+    )
+
+
 def _contract_vertices(
     graph: ig.Graph,
     membership: list[int],
@@ -631,6 +693,8 @@ def _contract_vertices(
         membership: Component membership for each vertex.
         vertex_attr_comb: How to combine vertex attributes. Supported methods:
             `"first"`, `"sum"`, `"min"`, `"max"`, `"ignore"`.
+            `"min_fitness"` / `"max_fitness"` take the attribute from the vertex
+            with minimum / maximum Fitness, choosing the first in graph order on ties.
 
     Returns:
         New graph with contracted vertices.
@@ -665,6 +729,10 @@ def _contract_vertices(
                 new_values.append(min(values))
             elif comb_method == "max":
                 new_values.append(max(values))
+            elif comb_method in {"min_fitness", "max_fitness"}:
+                select = min if comb_method == "min_fitness" else max
+                representative = select(verts, key=lambda v: graph.vs[v]["Fitness"])
+                new_values.append(graph.vs[representative][attr])
             else:
                 new_values.append(values[0] if values else None)
 
