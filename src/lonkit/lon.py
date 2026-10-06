@@ -409,11 +409,7 @@ class CMLON:
         mlon = lon.graph.copy()
         mlon.vs["Count"] = [1] * mlon.vcount()
 
-        el = mlon.get_edgelist()
-        fits = mlon.vs["Fitness"]
-
-        f1 = [fits[src] for src, _ in el]
-        f2 = [fits[tgt] for _, tgt in el]
+        f1, f2 = _edge_fitness(mlon)
 
         # Mark edge types
         edge_types = []
@@ -426,15 +422,16 @@ class CMLON:
                 edge_types.append("worsening")
         mlon.es["type"] = edge_types
 
-        # Remove worsening edges before compressing neutral components
+        # Remove worsening edges before compressing neutral components. They come from
+        # samplers that accept worse solutions, or from merging duplicate nodes whose
+        # fitness values differ slightly.
         worsening_edge_indices = [i for i, t in enumerate(edge_types) if t == "worsening"]
         if worsening_edge_indices:
             max_worsening = max(abs(f2[i] - f1[i]) for i in worsening_edge_indices)
             warnings.warn(
                 f"Removed {len(worsening_edge_indices)} worsening edge(s) from the LON "
                 f"(max fitness difference: {max_worsening:.6g}) to construct a monotonic CMLON. "
-                "These may come from a non-elitist sampler or from node deduplication with "
-                "inconsistent fitness values (consider setting `fitness_precision`).",
+                "If this is unexpected, consider setting `fitness_precision`.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -446,13 +443,10 @@ class CMLON:
         # equal to any of the vertices it was connected to before contraction.
         cmlon_graph = mlon
         while True:
-            equal_edge_indices = [
-                edge.index
-                for edge in cmlon_graph.es
-                if lon._allclose(
-                    cmlon_graph.vs[edge.source]["Fitness"], cmlon_graph.vs[edge.target]["Fitness"]
-                )
-            ]
+            f_src, f_tgt = _edge_fitness(cmlon_graph)
+            equal_edge_indices = np.flatnonzero(
+                np.isclose(f_src, f_tgt, atol=lon.eq_atol, rtol=0.0)
+            ).tolist()
             if not equal_edge_indices:
                 break
 
@@ -468,22 +462,16 @@ class CMLON:
             )
 
         # Contraction can also turn an improving edge into a worsening one between
-        # component representatives; such edges cannot be merged and are removed.
-        compressed_fits = cmlon_graph.vs["Fitness"]
-        worsening_after_compression = [
-            edge.index
-            for edge in cmlon_graph.es
-            if not (
-                compressed_fits[edge.target] < compressed_fits[edge.source]
-                if lon.minimize
-                else compressed_fits[edge.target] > compressed_fits[edge.source]
-            )
-        ]
+        # component representatives: approximate equality is not transitive, so
+        # contraction can change an edge's classification. Such edges cannot be
+        # merged and are removed.
+        f_src, f_tgt = _edge_fitness(cmlon_graph)
+        improving = f_tgt < f_src if lon.minimize else f_tgt > f_src
+        worsening_after_compression = np.flatnonzero(~improving).tolist()
         if worsening_after_compression:
             warnings.warn(
                 f"Removed {len(worsening_after_compression)} worsening edge(s) after "
-                "neutral-component compression to construct a monotonic CMLON. Approximate "
-                "equality is not transitive, so contraction can change an edge's classification.",
+                "neutral-component compression to construct a monotonic CMLON.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -674,6 +662,16 @@ class CMLON:
         network_metrics = self.compute_network_metrics(known_best)
         performance_metrics = self.compute_performance_metrics(known_best)
         return {**network_metrics, **performance_metrics}
+
+
+def _edge_fitness(graph: ig.Graph) -> tuple[np.ndarray, np.ndarray]:
+    """Return arrays of source and target vertex fitness for each edge, in edge order."""
+    fits = graph.vs["Fitness"]
+    el = graph.get_edgelist()
+    return (
+        np.array([fits[src] for src, _ in el], dtype=float),
+        np.array([fits[tgt] for _, tgt in el], dtype=float),
+    )
 
 
 def _contract_vertices(
