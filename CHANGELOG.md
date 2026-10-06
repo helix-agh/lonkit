@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.5.0
+
+Fixes CMLON construction so that the resulting graph is always monotonic, regardless of the input LON.
+
+### Bug Fixes
+
+- `CMLON.from_lon()` now removes worsening edges instead of keeping them. Previously, monotonicity held only if the input LON was monotonic, which could fail in two ways:
+  - user-supplied traces passed to `LON.from_trace_data()` containing non-improving transitions (e.g. from a sampler with a non-elitist acceptance rule);
+  - node deduplication: the same node recorded with slightly different fitness values receives a single aggregated value (`fitness_aggregation`), which can lie below the fitness of its successor. This could happen with the built-in samplers under default settings (`fitness_precision=None`).
+- Neutral-component compression is now repeated until no equal-fitness edges remain, because approximate equality (within `eq_atol`) is not transitive: a contracted component can become equal to a neighbour it was not equal to before contraction.
+- After compression, edges are checked again against the representative fitness of each component; edges that became worsening are removed.
+
+### API and Behavior Changes
+
+- `CMLON.from_lon()` / `LON.to_cmlon()` emit a `UserWarning` whenever worsening edges are removed (both before and after compression).
+- For non-monotonic input LONs, CMLON metrics (`n_funnels`, `n_global_funnels`, `sink_strength`, `global_funnel_proportion`) may differ from 0.4.0, since nodes left only via worsening edges are now sinks. Results for monotonic LONs are unchanged.
+- `LON.from_trace_data()` still keeps edges exactly as recorded, so a `LON` itself is not required to be monotonic.
+
+### Documentation
+
+- Documented the handling of worsening edges in `LON.from_trace_data()`, `CMLON.from_lon()` and the concepts guide.
+
+### Tests
+
+- Added `tests/test_cmlon_monotonicity.py` covering non-elitist traces (minimization and maximization), deduplication with every fitness aggregation strategy, non-transitive neutral chains, randomized invariant checks, and a Basin-Hopping integration test on Schwefel 2.26.
+
 ## 0.4.0
 
 Adds Kauffman's NK Landscape as a built-in discrete benchmark problem.
