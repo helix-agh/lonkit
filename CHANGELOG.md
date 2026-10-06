@@ -11,11 +11,13 @@ Fixes CMLON construction so that the resulting graph is always monotonic, regard
   - node deduplication: the same node recorded with slightly different fitness values receives a single aggregated value (`fitness_aggregation`), which can lie below the fitness of its successor. This could happen with the built-in samplers under default settings (`fitness_precision=None`).
 - Neutral-component compression is now repeated until no equal-fitness edges remain, because approximate equality (within `eq_atol`) is not transitive: a contracted component can become equal to a neighbour it was not equal to before contraction.
 - After compression, edges are checked again against the representative fitness of each component; edges that became worsening are removed.
+- Compressed components retain their best fitness (`min` for minimization, `max` for maximization), preserving the global optimum through repeated compression.
+- Component names come from the vertex with the retained fitness; ties use the first vertex in graph order.
 
 ### API and Behavior Changes
 
 - `CMLON.from_lon()` / `LON.to_cmlon()` emit a `UserWarning` whenever worsening edges are removed (both before and after compression).
-- For non-monotonic input LONs, CMLON metrics (`n_funnels`, `n_global_funnels`, `sink_strength`, `global_funnel_proportion`) may differ from 0.4.0, since nodes left only via worsening edges are now sinks. Results for monotonic LONs are unchanged.
+- For non-monotonic input LONs, CMLON metrics (`n_funnels`, `n_global_funnels`, `sink_strength`, `global_funnel_proportion`) may differ from 0.4.0, since nodes left only via worsening edges are now sinks.
 - `LON.from_trace_data()` still keeps edges exactly as recorded, so a `LON` itself is not required to be monotonic.
 
 ### Documentation

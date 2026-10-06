@@ -100,6 +100,35 @@ class TestCMLONMonotonicity:
         assert cmlon.n_vertices == 3
         assert cmlon.n_edges == 2
 
+    @pytest.mark.parametrize("minimize", [True, False])
+    def test_repeated_compression_preserves_global_optimum(self, minimize):
+        """The first vertex must not replace the best fitness of a neutral component."""
+        scale = (1 if minimize else -1) * 1e-12
+        trace = _trace(
+            [
+                (1, 0.0, "b", 0.75 * scale, "c"),
+                (1, 0.75 * scale, "c", 1.5 * scale, "d"),
+                (1, 1.5 * scale, "d", 2.25 * scale, "e"),
+                (1, 2.25 * scale, "e", 0.75 * scale, "a"),
+                (2, 2.25 * scale, "e", -0.5 * scale, "f"),
+            ]
+        )
+        lon = LON.from_trace_data(trace, LONConfig(minimize=minimize))
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            cmlon = lon.to_cmlon()
+
+        assert cmlon.n_vertices == 1
+        assert cmlon.vertex_fitness == [lon.best_fitness]
+        assert cmlon.graph.vs["name"] == ["f"]
+        assert cmlon.vertex_count == [6]
+        assert cmlon.get_global_sinks() == [0]
+        assert cmlon.get_local_sinks() == []
+        metrics = cmlon.compute_network_metrics()
+        assert metrics["n_global_funnels"] == 1
+        assert metrics["global_funnel_proportion"] == 1.0
+
     @staticmethod
     def _neutral_chain_lon(minimize: bool, target: float) -> LON:
         """Chain a -> b -> c -> d with steps of 0.75 * eq_atol, so each step is equal
@@ -134,7 +163,10 @@ class TestCMLONMonotonicity:
         names = cmlon.graph.vs["name"]
         assert cmlon.n_vertices == 2
         assert cmlon.graph.vs["Count"] == [5, 1]
-        assert [(names[s], names[t]) for s, t in cmlon.graph.get_edgelist()] == [("a", "f")]
+        representative = "e" if target < 0 else "a"
+        assert [(names[s], names[t]) for s, t in cmlon.graph.get_edgelist()] == [
+            (representative, "f")
+        ]
         assert cmlon.graph.es["Count"] == [1]
         assert cmlon.compute_network_metrics()["n_funnels"] == 1
         assert lon.graph.get_edgelist() == original_edges

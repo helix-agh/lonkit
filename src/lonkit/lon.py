@@ -380,7 +380,9 @@ class CMLON:
         2. Remove worsening edges (with a warning)
         3. Create subgraph of equal-fitness edges
         4. Find weakly connected components
-        5. Contract vertices using component membership
+        5. Contract vertices using component membership, keeping the best fitness
+           in each component (minimum for minimization, maximum for maximization)
+           and the name of the vertex with that fitness (first in graph order on ties)
         6. Combine parallel edge weights
         7. Repeat steps 3-6 until no equal-fitness edges remain. Approximate equality
            is not transitive, so a contracted component can become equal to a
@@ -439,7 +441,7 @@ class CMLON:
 
         # Contract neutral components until no equal-fitness edges remain. Approximate
         # equality is not transitive, so a contracted component (represented by the
-        # fitness of its first vertex) can become equal to a neighbour that was not
+        # best fitness of its vertices) can become equal to a neighbour that was not
         # equal to any of the vertices it was connected to before contraction.
         cmlon_graph = mlon
         while True:
@@ -458,7 +460,11 @@ class CMLON:
             cmlon_graph = _contract_vertices(
                 cmlon_graph,
                 nn_memb,
-                vertex_attr_comb={"Fitness": "first", "Count": "sum", "name": "first"},
+                vertex_attr_comb={
+                    "Fitness": "min" if lon.minimize else "max",
+                    "Count": "sum",
+                    "name": "min_fitness" if lon.minimize else "max_fitness",
+                },
             )
 
         # Contraction can also turn an improving edge into a worsening one between
@@ -687,6 +693,8 @@ def _contract_vertices(
         membership: Component membership for each vertex.
         vertex_attr_comb: How to combine vertex attributes. Supported methods:
             `"first"`, `"sum"`, `"min"`, `"max"`, `"ignore"`.
+            `"min_fitness"` / `"max_fitness"` take the attribute from the vertex
+            with minimum / maximum Fitness, choosing the first in graph order on ties.
 
     Returns:
         New graph with contracted vertices.
@@ -721,6 +729,10 @@ def _contract_vertices(
                 new_values.append(min(values))
             elif comb_method == "max":
                 new_values.append(max(values))
+            elif comb_method in {"min_fitness", "max_fitness"}:
+                select = min if comb_method == "min_fitness" else max
+                representative = select(verts, key=lambda v: graph.vs[v]["Fitness"])
+                new_values.append(graph.vs[representative][attr])
             else:
                 new_values.append(values[0] if values else None)
 
