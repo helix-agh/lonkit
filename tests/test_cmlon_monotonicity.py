@@ -5,6 +5,9 @@ import pandas as pd
 import pytest
 
 from lonkit import LON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONConfig
+from tests.conftest import schwefel2_26
+
+SCHWEFEL_DOMAIN_3D = [(-500.0, 500.0)] * 3
 
 
 def _trace(rows: list[tuple[int, float, str, float, str]]) -> pd.DataFrame:
@@ -20,10 +23,6 @@ def _worsening_edges(lon, minimize: bool = True) -> list[tuple[str, str]]:
         if worse and not lon._allclose(fits[src], fits[tgt]):
             result.append((names[src], names[tgt]))
     return result
-
-
-def _schwefel(x: np.ndarray) -> float:
-    return float(418.9829 * len(x) - np.sum(x * np.sin(np.sqrt(np.abs(x)))))
 
 
 class TestCMLONMonotonicity:
@@ -232,23 +231,30 @@ class TestCMLONMonotonicity:
         """Integration: Schwefel 2.26 (D=3) with default fitness_precision=None.
 
         Whether numerical noise produces worsening input edges depends on the
-        optimizer/platform. The deterministic deduplication test above is the
-        regression test; here we check the full sampling-to-CMLON pipeline.
+        optimizer/platform, so no particular seed reproduces them everywhere. The
+        deterministic deduplication tests above are the regression tests; here we
+        check the CMLON invariants on the full sampling-to-CMLON pipeline.
         """
-        config = BasinHoppingSamplerConfig(n_runs=30, coordinate_precision=2, seed=2)
+        config = BasinHoppingSamplerConfig(n_runs=3, coordinate_precision=2, seed=2)
         sampler = BasinHoppingSampler(config)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            lon = sampler.sample_to_lon(sampler.sample(_schwefel, [(-500.0, 500.0)] * 3))
+            lon = sampler.sample_to_lon(sampler.sample(schwefel2_26, SCHWEFEL_DOMAIN_3D))
 
-        if _worsening_edges(lon):
-            with pytest.warns(UserWarning, match="worsening edge"):
+        worsening = _worsening_edges(lon)
+        if worsening:
+            with pytest.warns(UserWarning, match=f"Removed {len(worsening)} worsening edge"):
                 cmlon = lon.to_cmlon()
         else:
-            cmlon = lon.to_cmlon()
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                cmlon = lon.to_cmlon()
 
-        assert cmlon.n_vertices > 0
+        assert cmlon.n_edges > 0
+        assert _worsening_edges(cmlon) == []
         fits = cmlon.vertex_fitness
         for src, tgt in cmlon.graph.get_edgelist():
             assert fits[tgt] < fits[src]
             assert not cmlon._allclose(fits[src], fits[tgt])
+        assert cmlon.graph.is_dag()
+        assert sum(cmlon.graph.vs["Count"]) == lon.n_vertices
