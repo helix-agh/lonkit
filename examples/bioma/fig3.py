@@ -58,7 +58,7 @@ def main() -> None:
     results = build_all(FUNCTIONS)
 
     save_individual_figures(results, images_dir)
-    save_network_grid(results, FUNCTIONS, images_dir / "fig3.png")
+    save_network_grid(results, FUNCTIONS, images_dir / "fig3.png", title_fontsize=40, legend=True)
     save_metrics_figure(results, FUNCTIONS, FUNC_STYLES, images_dir / "fig2.png")
 
 
