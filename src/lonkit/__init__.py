@@ -13,7 +13,7 @@ from lonkit.discrete.problems import (
     OneMax,
 )
 from lonkit.discrete.sampling import ILSResult, ILSSampler, ILSSamplerConfig
-from lonkit.lon import CMLON, LON, LONConfig
+from lonkit.lon import CMLON, LON, LONConfig, validate_trace
 from lonkit.visualization import LONVisualizer
 
 __version__ = "0.3.0"
@@ -37,4 +37,5 @@ __all__ = [
     "StepSizeEstimatorConfig",
     "StepSizeResult",
     "compute_lon",
+    "validate_trace",
 ]
