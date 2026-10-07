@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from npp_paths import IMAGES_DIR
+from npp_paths import IMAGES_DIR, LONS_DATA_DIR, save_traces
 
 from lonkit import (
     CMLON,
@@ -17,6 +17,7 @@ INSTANCE_SEED = 1
 N_RUNS = 100
 N_ITER = 500
 RANDOM_SEED = 42
+LAYOUT_SEED = 42
 
 K_VALUES = [0.3, 0.7, 0.95]
 
@@ -45,7 +46,7 @@ def render_3d_lons(cmlon_by_k: dict[float, CMLON], output_dir: Path = Path(IMAGE
 
     for k, cmlon in cmlon_by_k.items():
         vis = LONVisualizer(min_edge_width=0.5, max_edge_width=1, min_node_size=2.5, arrow_size=0.1)
-        fig = vis.plot_3d(cmlon)
+        fig = vis.plot_3d(cmlon, seed=LAYOUT_SEED)
         fig.update_layout(
             scene=dict(
                 xaxis=dict(**axis_config, title="X"),
@@ -95,19 +96,22 @@ def main():
 
     lon_config = LONConfig(eq_atol=1e-8)
     cmlon_by_k = {}
+    traces = {}
 
     for k in K_VALUES:
         problem = NumberPartitioning(n=N, k=k, instance_seed=INSTANCE_SEED)
         sampler = ILSSampler(sampler_config)
         result = sampler.sample(problem)
+        traces[f"NPP_k{k:.3f}"] = result.trace_df
 
         lon = sampler.sample_to_lon(result, lon_config)
         cmlon = lon.to_cmlon()
         cmlon_by_k[k] = cmlon
 
         vis = LONVisualizer(0.5, 1, arrow_size=0.1)
-        vis.plot_2d(cmlon, f"{IMAGES_DIR}/NPP_{k}_2d.png")
+        vis.plot_2d(cmlon, f"{IMAGES_DIR}/NPP_{k}_2d.png", seed=LAYOUT_SEED)
 
+    save_traces(traces, LONS_DATA_DIR)
     render_3d_lons(cmlon_by_k)
     render_merged_lon_grid(K_VALUES)
 

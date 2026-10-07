@@ -55,7 +55,7 @@ def main() -> None:
     images_dir = Path(IMAGES_DIR)
     images_dir.mkdir(parents=True, exist_ok=True)
 
-    results = build_all(FUNCTIONS)
+    results = build_all(FUNCTIONS, data_dir=images_dir / "fig3_data")
 
     save_individual_figures(results, images_dir)
     save_network_grid(results, FUNCTIONS, images_dir / "fig3.png")

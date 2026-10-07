@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
+import pandas as pd
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -39,7 +40,12 @@ def build_cmlon(
     n_runs: int = DEFAULT_N_RUNS,
     fitness_precision: int = DEFAULT_FITNESS_PRECISION,
     seed: int = DEFAULT_SEED,
-) -> CMLON:
+) -> tuple[CMLON, pd.DataFrame]:
+    """Build a CMLON and return it alongside the raw sampling trace.
+
+    The trace DataFrame (columns ``[run, fit1, node1, fit2, node2]``) is the
+    reproducible source: ``LON.from_trace_data(trace)`` rebuilds the LON and CMLON.
+    """
     lb, ub = func_cfg.bounds
     domain = [(lb, ub)] * n_var
 
@@ -57,7 +63,7 @@ def build_cmlon(
     sampler = BasinHoppingSampler(config)
     result = sampler.sample(func_cfg.func, domain)
     lon = sampler.sample_to_lon(result)
-    return lon.to_cmlon()
+    return lon.to_cmlon(), result.trace_df
 
 
 METRIC_PANELS = [
@@ -74,18 +80,24 @@ def _build_one(
     func_name: str,
     func_cfg: FunctionConfig,
     n_var: int,
-) -> tuple[str, int, CMLON, dict]:
+) -> tuple[str, int, CMLON, dict, pd.DataFrame]:
     """Build a single CMLON and compute its metrics (top-level for pickling)."""
     print(f"Sampling {func_name} n={n_var} ...")
-    cmlon = build_cmlon(func_cfg, n_var)
+    cmlon, trace_df = build_cmlon(func_cfg, n_var)
     metrics = cmlon.compute_metrics(known_best=func_cfg.best)
-    return func_name, n_var, cmlon, metrics
+    return func_name, n_var, cmlon, metrics, trace_df
 
 
 def build_all(
     functions: dict[str, FunctionConfig],
+    *,
+    data_dir: Path | None = None,
 ) -> dict[tuple[str, int], tuple[CMLON, dict]]:
-    """Build all CMLONs and collect metrics (in parallel across functions/dimensions)."""
+    """Build all CMLONs and collect metrics (in parallel across functions/dimensions).
+
+    If ``data_dir`` is given, the raw sampling trace of each network and a
+    ``metrics.csv`` summary are written there for reviewers to reanalyze.
+    """
     tasks = [
         (func_name, func_cfg, n_var)
         for func_name, func_cfg in functions.items()
@@ -93,12 +105,70 @@ def build_all(
     ]
 
     results: dict[tuple[str, int], tuple[CMLON, dict]] = {}
+    traces: dict[str, pd.DataFrame] = {}
     with ProcessPoolExecutor() as executor:
         futures = [executor.submit(_build_one, *t) for t in tasks]
         for future in futures:
-            func_name, n_var, cmlon, metrics = future.result()
+            func_name, n_var, cmlon, metrics, trace_df = future.result()
             results[(func_name, n_var)] = (cmlon, metrics)
+            traces[f"{_slug(func_name)}_dim{n_var}"] = trace_df
+
+    if data_dir is not None:
+        save_traces(traces, data_dir)
+        save_metrics_csv(results, data_dir / "metrics.csv")
+
     return results
+
+
+_TRACE_README = """\
+# Raw sampling traces
+
+Each `*.csv` is the raw Basin-Hopping sampling trace for one (function, dimension),
+with columns `[run, fit1, node1, fit2, node2]`. The trace is the reproducible
+source for every figure and metric: rebuild the LON/CMLON and reproduce the results
+with a few lines.
+
+```python
+import pandas as pd
+from lonkit import LON, LONVisualizer
+
+trace = pd.read_csv("Ackley_4_dim3.csv")   # pick any file in this folder
+lon = LON.from_trace_data(trace)
+cmlon = lon.to_cmlon()
+print(cmlon.compute_metrics())             # matches metrics.csv
+LONVisualizer().plot_2d(cmlon)
+```
+
+`metrics.csv` (when present) lists the computed metrics per (function, dimension).
+"""
+
+
+def _slug(name: str) -> str:
+    """Filesystem-safe stem for a function name (e.g. ``Ackley 4`` -> ``Ackley_4``)."""
+    return name.replace(" ", "_")
+
+
+def save_traces(traces: dict[str, pd.DataFrame], data_dir: Path) -> None:
+    """Write one CSV per raw sampling trace, plus a README explaining reuse."""
+    data_dir.mkdir(parents=True, exist_ok=True)
+    for stem, trace_df in traces.items():
+        path = data_dir / f"{stem}.csv"
+        trace_df.to_csv(path, index=False)
+        print(f"Saved {path}")
+    (data_dir / "README.md").write_text(_TRACE_README, encoding="utf-8")
+
+
+def save_metrics_csv(
+    results: dict[tuple[str, int], tuple[CMLON, dict]],
+    output_path: Path,
+) -> None:
+    """Write a metrics.csv summary with one row per (function, dimension)."""
+    rows = [
+        {"function": func_name, "dimension": n_var, **metrics}
+        for (func_name, n_var), (_cmlon, metrics) in results.items()
+    ]
+    pd.DataFrame(rows).to_csv(output_path, index=False)
+    print(f"Saved {output_path}")
 
 
 def save_network_grid(

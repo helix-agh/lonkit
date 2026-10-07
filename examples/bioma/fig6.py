@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from problems import spread_spectrum_radar_polly_phase, ssc_ruspini
 from utils import (
+    DEFAULT_SEED,
     IMAGES_DIR,
     FunctionConfig,
     build_all,
@@ -45,7 +46,7 @@ def save_individual_figures(results: dict, images_dir: Path) -> None:
     viz = LONVisualizer()
     for (func_name, n_var), (cmlon, _metrics) in results.items():
         path = images_dir / f"fig6_{func_name}_dim{n_var}.png"
-        fig = viz.plot_2d(cmlon, output_path=str(path))
+        fig = viz.plot_2d(cmlon, output_path=str(path), seed=DEFAULT_SEED)
         plt.close(fig)
         print(f"  Saved {path}")
 
@@ -54,7 +55,7 @@ def main() -> None:
     images_dir = Path(IMAGES_DIR)
     images_dir.mkdir(parents=True, exist_ok=True)
 
-    results = build_all(FUNCTIONS)
+    results = build_all(FUNCTIONS, data_dir=images_dir / "fig6_data")
 
     save_individual_figures(results, images_dir)
     save_network_grid(results, FUNCTIONS, images_dir / "fig6.png")

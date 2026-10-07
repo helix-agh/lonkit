@@ -3,7 +3,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from problems import ackley4, griewank, schwefel2_26
-from utils import IMAGES_DIR, FunctionConfig, build_cmlon
+from utils import DEFAULT_SEED, IMAGES_DIR, FunctionConfig, build_cmlon, save_traces
 
 from lonkit import LONVisualizer
 
@@ -53,7 +53,7 @@ def render_3d_cmlons(func_names, cmlons):
 
     for func_name in func_names:
         viz = LONVisualizer()
-        fig = viz.plot_3d(cmlons[func_name])
+        fig = viz.plot_3d(cmlons[func_name], seed=DEFAULT_SEED)
 
         fig.update_layout(
             scene=dict(
@@ -114,7 +114,11 @@ def main() -> None:
             for func_name in func_names
         }
 
-        cmlons = {name: fut.result() for name, fut in futures.items()}
+        built = {name: fut.result() for name, fut in futures.items()}
+
+    cmlons = {name: cmlon for name, (cmlon, _trace) in built.items()}
+    traces = {name.replace(" ", "_"): trace for name, (_cmlon, trace) in built.items()}
+    save_traces(traces, Path(IMAGES_DIR) / "fig4_data")
 
     plot_paths = render_3d_cmlons(func_names, cmlons)
 
