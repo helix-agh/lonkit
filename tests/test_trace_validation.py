@@ -72,7 +72,7 @@ class TestValues:
         assert validate_trace(trace)["fit2"].dtype == float
 
     @pytest.mark.parametrize("bad", [None, "", "  "])
-    def test_invalid_node_raises(self, bad: object) -> None:
+    def test_invalid_node_raises(self, bad: str | None) -> None:
         trace = make_trace()
         trace.loc[0, "node2"] = bad
         with pytest.raises(ValueError, match=r"column 'node2' in rows \[0\]"):
@@ -134,6 +134,7 @@ class TestFromTraceData:
     def test_final_run_values_use_validated_columns(self) -> None:
         trace = make_trace()[["node2", "run", "fit2", "node1", "fit1"]]
         lon = LON.from_trace_data(trace)
+        assert lon.final_run_values is not None
         assert lon.final_run_values.to_dict() == {1: 4.0, 2: 9.0}
         assert lon.best_fitness == 4.0
 

@@ -805,7 +805,7 @@ def validate_trace(trace: pd.DataFrame, strict: bool = False) -> pd.DataFrame:
 
     for col in ["fit1", "fit2"]:
         values = pd.to_numeric(trace[col], errors="coerce").astype(float)
-        invalid = ~np.isfinite(values)
+        invalid = values.isna() | values.isin([np.inf, -np.inf])
         if invalid.any():
             raise ValueError(
                 f"Non-numeric, missing or infinite values in column '{col}' "
