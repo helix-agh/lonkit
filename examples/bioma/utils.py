@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     import numpy as np
 
 from lonkit import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
+from lonkit.visualization import COLORS
 
 DEFAULT_N_RUNS = 100
 DEFAULT_FITNESS_PRECISION = 2
@@ -107,6 +109,8 @@ def save_network_grid(
     output_path: Path,
     labels: str = "abcdefghijklmnop",
     layout_seed: int = DEFAULT_SEED,
+    title_fontsize: float = 10,
+    legend: bool = False,
 ) -> None:
     """Save a combined grid of CMLON network plots."""
     viz = LONVisualizer()
@@ -136,7 +140,8 @@ def save_network_grid(
             cmlon, metrics = results[(func_name, n_var)]
             success = metrics["success"]
 
-            ax.set_aspect("equal")
+            # Keep the axes box at full cell size so titles line up across a row.
+            ax.set_aspect("equal", adjustable="datalim")
             ax.axis("off")
 
             graph = cmlon.graph
@@ -177,13 +182,46 @@ def save_network_grid(
 
             label = labels[label_idx]
             ax.set_title(
-                f"({label}) {func_name}, $n$ = {n_var}, success = {success:.2f}",
-                fontsize=10,
-                pad=6,
+                f"({label}) {func_name}, $n$ = {n_var}\nsuccess = {success:.2f}",
+                fontsize=title_fontsize,
+                pad=0.6 * title_fontsize,
             )
             label_idx += 1
 
     plt.tight_layout()
+
+    if legend:
+        entries = [
+            ("global_optimum", "Global optimum"),
+            ("global_basin", "Global funnel"),
+            ("local_sink", "Local sink"),
+            ("local_basin", "Local funnel"),
+        ]
+        handles = [
+            Line2D(
+                [],
+                [],
+                linestyle="none",
+                marker="o",
+                markersize=0.8 * title_fontsize,
+                markerfacecolor=COLORS[key],
+                markeredgecolor="black",
+                markeredgewidth=0.5,
+                label=text,
+            )
+            for key, text in entries
+        ]
+        fig.legend(
+            handles=handles,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.0),
+            ncol=len(handles),
+            frameon=False,
+            fontsize=title_fontsize,
+            handletextpad=0.3,
+            columnspacing=1.5,
+        )
+
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"Saved {output_path}")
