@@ -103,29 +103,43 @@ class TestFitness:
         assert _validate_trace(trace)["fit1"].dtype == float
 
 
-class TestNodeIds:
-    def test_integer_ids_converted_to_str(self) -> None:
+class TestRun:
+    @pytest.mark.parametrize(
+        "values",
+        [pd.Series([1.0, 1.0, 2.0]), pd.Series(["a", "a", "b"]), pd.Series([True, True, False])],
+    )
+    def test_non_integer_run_raises(self, values: pd.Series) -> None:
         trace = make_trace()
-        trace["node1"] = [110, 111, 1000]
-        trace["node2"] = [111, 1111, 111]
-        validated = validate_without_warnings(trace)
-        assert validated["node1"].tolist() == ["110", "111", "1000"]
-        assert validated["node2"].tolist() == ["111", "1111", "111"]
-
-    def test_mixed_id_types_raise(self) -> None:
-        # Mixing would make e.g. 123 and "123" the same node
-        trace = make_trace()
-        trace["node1"] = pd.Series([123, "456", 7], dtype=object)
-        with pytest.raises(ValueError, match="all strings or all integers"):
+        trace["run"] = values
+        with pytest.raises(ValueError, match="'run' must contain integer run numbers"):
             _validate_trace(trace)
 
-    @pytest.mark.parametrize("values", [pd.Series([1.0, 2.0, 3.0]), pd.Series([True, False, True])])
-    def test_unsupported_id_types_raise(self, values: pd.Series) -> None:
+
+class TestNodeIds:
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.Series([110, 111, 1000]),
+            pd.Series([1.0, 2.0, 3.0]),
+            pd.Series(["0110", 111, "1000"], dtype=object),
+        ],
+    )
+    def test_non_string_ids_raise(self, values: pd.Series) -> None:
         trace = make_trace()
         trace["node1"] = values
-        trace["node2"] = values
-        with pytest.raises(ValueError, match="all strings or all integers"):
+        with pytest.raises(ValueError, match="'node1' must contain string node identifiers"):
             _validate_trace(trace)
+
+    def test_csv_without_str_dtype_raises(self, tmp_path) -> None:
+        # Without dtype=str, read_csv parses bitstrings as integers and drops leading zeros
+        path = tmp_path / "trace.csv"
+        make_trace().to_csv(path, index=False)
+        with pytest.raises(ValueError, match="leading zeros"):
+            _validate_trace(pd.read_csv(path))
+
+    def test_pandas_string_dtype_accepted(self) -> None:
+        trace = make_trace().astype({"node1": "string", "node2": "string"})
+        validate_without_warnings(trace)
 
 
 class TestTrajectoryContinuity:

@@ -72,12 +72,11 @@ class LON:
         Args:
             trace: DataFrame with one accepted transition per row, in chronological order
                 within each run, and columns `[run, fit1, node1, fit2, node2]` (in any order) where:
-                - run: run identifier
+                - run: integer run number
                 - fit1: fitness value of source node
-                - node1: identifier of source node
+                - node1: string identifier of source node
                 - fit2: fitness value of target node
-                - node2: identifier of target node
-                Node identifiers must be either all strings or all integers.
+                - node2: string identifier of target node
             config: Optional configuration for LON construction. If `None`, uses default
                 configuration with minimum fitness aggregation. Default: `None`.
 
@@ -90,16 +89,16 @@ class LON:
             the same node is recorded with different fitness values and these are aggregated
             (see `LONConfig.fitness_aggregation`). `CMLON.from_lon()` removes such edges.
 
-            The trace is validated before construction. Integer node identifiers are
-            converted to strings. A `UserWarning` is emitted if a trajectory is broken,
-            i.e. within a run `node2` of a row differs from `node1` of the next row,
-            which usually means that rows are out of order or include rejected moves.
+            The trace is validated before construction. A `UserWarning` is emitted if a
+            trajectory is broken, i.e. within a run `node2` of a row differs from `node1`
+            of the next row, which usually means that rows are out of order or include
+            rejected moves.
 
         Raises:
             ValueError: If the trace is malformed: it is empty, its columns differ from
-                `[run, fit1, node1, fit2, node2]`, it has missing values, fitness values
-                are non-numeric or infinite, or node identifiers are not all strings or
-                all integers. Also raised if fitness_aggregation is `"strict"` and duplicates are
+                `[run, fit1, node1, fit2, node2]`, it has missing values, run numbers are
+                not integers, fitness values are non-numeric or infinite, or node
+                identifiers are not strings. Also raised if fitness_aggregation is `"strict"` and duplicates are
                 detected, or if `max_fitness_deviation` threshold is exceeded.
         """
         config = config or LONConfig()
@@ -843,6 +842,10 @@ def _validate_trace(trace: pd.DataFrame) -> pd.DataFrame:
     if missing.any():
         raise ValueError(f"Missing values in columns {missing[missing].index.tolist()}.")
 
+    run_dtype = trace["run"].dtype
+    if not pd.api.types.is_integer_dtype(run_dtype) or pd.api.types.is_bool_dtype(run_dtype):
+        raise ValueError(f"Column 'run' must contain integer run numbers, got dtype {run_dtype}.")
+
     for col in ["fit1", "fit2"]:
         dtype = trace[col].dtype
         if not pd.api.types.is_numeric_dtype(dtype) or pd.api.types.is_bool_dtype(dtype):
@@ -853,11 +856,13 @@ def _validate_trace(trace: pd.DataFrame) -> pd.DataFrame:
         if np.isinf(trace[col]).any():
             raise ValueError(f"Infinite fitness values in column '{col}'.")
 
-    ids = pd.concat([trace["node1"], trace["node2"]])
-    if pd.api.types.infer_dtype(ids) not in ("string", "integer"):
-        raise ValueError("Node identifiers must be either all strings or all integers.")
-    trace["node1"] = trace["node1"].astype(str)
-    trace["node2"] = trace["node2"].astype(str)
+    for col in ["node1", "node2"]:
+        if pd.api.types.infer_dtype(trace[col]) != "string":
+            raise ValueError(
+                f"Column '{col}' must contain string node identifiers. When reading a CSV file, "
+                f"use pd.read_csv(..., dtype={{'node1': str, 'node2': str}}) so that identifiers "
+                f"such as bitstrings keep their leading zeros."
+            )
 
     next_node1 = trace.groupby("run", sort=False)["node1"].shift(-1)
     broken = next_node1.notna() & (next_node1 != trace["node2"])

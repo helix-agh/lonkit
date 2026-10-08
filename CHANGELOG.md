@@ -6,20 +6,20 @@ Validates trace data in `LON.from_trace_data()`, making it safe to build LONs fr
 
 ### Highlights
 
-- `LON.from_trace_data()` now validates and normalizes the trace before building the LON:
-  - raises `ValueError` for malformed data: an empty trace, missing or extra columns, missing values, non-numeric (including datetime and boolean) or infinite fitness values, and node identifiers that are not all strings or all integers;
+- `LON.from_trace_data()` now validates the trace before building the LON:
+  - raises `ValueError` for malformed data: an empty trace, missing or extra columns, missing values, non-integer run numbers, non-numeric (including datetime and boolean) or infinite fitness values, and non-string node identifiers;
   - emits a `UserWarning` for broken trajectories, i.e. when within a run `node2` of a row differs from `node1` of the next row, which usually means that rows are out of order or include rejected moves.
-- Node identifiers can be either all strings or all integers. Integers are converted to strings; mixing both types raises `ValueError`, so that e.g. `123` and `"123"` are never silently merged into one node.
 
 ### API and Behavior Changes
 
 - Trace columns are matched by name and must be exactly `run`, `fit1`, `node1`, `fit2`, `node2`, in any order. Previously, columns were taken by position regardless of their names, so DataFrames with other column names must now be renamed.
 - An empty trace now raises `ValueError` instead of returning a LON without vertices and with a `NaN` best fitness. `sample_to_lon()` still returns an empty `LON` for an empty sampling result.
+- The documented column types are now enforced: `run` must be an integer column and node identifiers must be strings. In particular, a CSV file read without `dtype={"node1": str, "node2": str}` is rejected instead of silently losing leading zeros of identifiers such as bitstrings.
 - Fitness values are converted to `float`.
 
 ### Bug Fixes
 
-- Integer node identifiers no longer cause all edges to be dropped. Vertices were named after a float-converted identifier (`"10.0"`) while edges were looked up by the original one (`"10"`), and the resulting errors were silently ignored. The built-in samplers always produce string identifiers and were not affected.
+- Non-string node identifiers now raise `ValueError` instead of silently dropping all edges. For integer identifiers, vertices were named after a float-converted identifier (`"10.0"`) while edges were looked up by the original one (`"10"`), and the resulting errors were ignored. The built-in samplers always produce string identifiers and were not affected.
 
 ### Documentation
 
