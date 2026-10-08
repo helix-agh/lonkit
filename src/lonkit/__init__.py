@@ -16,7 +16,7 @@ from lonkit.discrete.sampling import ILSResult, ILSSampler, ILSSamplerConfig
 from lonkit.lon import CMLON, LON, LONConfig, validate_trace
 from lonkit.visualization import LONVisualizer
 
-__version__ = "0.3.0"
+__version__ = "0.5.0"
 __all__ = [
     "CMLON",
     "LON",

@@ -21,6 +21,8 @@ Gent, I. P., & Walsh, T. (1998). Analysis of heuristics for number partitioning.
 Outputs one figure: ``NPP_phase_transition_sweep.png``
 """
 
+import os
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import matplotlib.patches as mpatches
@@ -72,43 +74,53 @@ def plot_npp_metrics(
 
     _X_K_RIGHT = float(ks.max()) + 0.02
 
+    TITLE_FONTSIZE = 14
+    LABEL_FONTSIZE = 13
+    TICK_FONTSIZE = 12
+    LEGEND_FONTSIZE = 13
+
     _YLABEL_KW = {
         "rotation": 90,
         "ha": "center",
         "va": "center",
-        "labelpad": 20,
-        "fontsize": 8,
+        "labelpad": 10,
+        "fontsize": LABEL_FONTSIZE,
     }
+    _XLABEL = "k"
 
-    SUCCESS_YLABEL = "ILS success rate\nvs. best fitness in\nthe sampled network"
-
+    # (title, y-axis label, series, colour, marker)
     PANELS = [
-        ("Global to local\n funnel proportion", global_funnel_prop, C_GLOBAL, "^"),
-        ("Number of CMLON\nlocal optima", n_optima, C_LINE, "o"),
-        ("Number of CMLON\nfunnels", n_funnels, C_SINK, "s"),
-        (SUCCESS_YLABEL, ils_success, C_SUCCESS, "o"),
-        ("Global CMLON\nstrength", global_strength, C_GLOBAL, "D"),
+        ("(a) Global to local funnel proportion", "Proportion", global_funnel_prop, C_GLOBAL, "^"),
+        ("(b) Number of CMLON local optima", "Local optima", n_optima, C_LINE, "o"),
+        ("(c) Number of CMLON funnels", "Funnels", n_funnels, C_SINK, "s"),
+        ("(d) ILS success vs. best sampled fitness", "Success rate", ils_success, C_SUCCESS, "o"),
+        ("(e) Global CMLON strength", "Strength", global_strength, C_GLOBAL, "D"),
     ]
 
     def _draw_background(ax):
         ax.axvspan(k_centre, _X_K_RIGHT, color=C_BAND, alpha=0.55, zorder=0)
         ax.axvline(k_centre, color=C_REF, linewidth=0.9, linestyle="--", zorder=1)
 
-    def _plot_metric_ax(ax, ylabel, series, colour, marker):
+    def _style_axes(ax, title, ylabel):
+        ax.set_title(title, fontsize=TITLE_FONTSIZE, pad=8)
+        ax.set_ylabel(ylabel, **_YLABEL_KW)
+        ax.set_xlabel(_XLABEL, fontsize=LABEL_FONTSIZE, labelpad=4)
+        ax.tick_params(axis="both", labelsize=TICK_FONTSIZE)
+
+    def _plot_metric_ax(ax, title, ylabel, series, colour, marker):
         _draw_background(ax)
         ax.plot(
             ks,
             series,
             color=colour,
             marker=marker,
-            markersize=4,
-            linewidth=1.4,
+            markersize=5,
+            linewidth=1.7,
             markeredgewidth=0.5,
             markeredgecolor="white",
             zorder=3,
         )
-        ax.set_ylabel(ylabel, **_YLABEL_KW)
-        ax.tick_params(axis="both", labelsize=9)
+        _style_axes(ax, title, ylabel)
         ax.spines[["top", "right"]].set_visible(False)
         ax.grid(axis="y", linewidth=0.4, alpha=0.4)
         if series.min() >= 0:
@@ -121,22 +133,11 @@ def plot_npp_metrics(
             ks,
             deriv_signal,
             color=C_DERIV,
-            linewidth=1.5,
+            linewidth=1.8,
             zorder=3,
-            label=r"$-\,d(\mathrm{success})/dk$  (smoothed)",
         )
-        ax.set_ylabel("Transition\nrate", **_YLABEL_KW)
-        ax.set_xlabel("Phase-transition parameter  k", fontsize=10.5, labelpad=8)
-        ax.tick_params(axis="both", labelsize=9)
+        _style_axes(ax, "(f) Transition rate", r"$-\,d(\mathrm{success})/dk$")
         ax.spines[["top", "right"]].set_visible(False)
-        ax.legend(
-            fontsize=7.5,
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.38),
-            ncol=1,
-            framealpha=0.85,
-            edgecolor="#d1d5db",
-        )
         ax.set_xlim(ks.min() - 0.02, ks.max() + 0.02)
 
     # Legend
@@ -155,18 +156,25 @@ def plot_npp_metrics(
             linewidth=0.9,
             label=(f"transition centre  k*\u202f=\u202f{k_centre:.2f}  "),
         ),
+        Line2D(
+            [0],
+            [0],
+            color=C_DERIV,
+            linewidth=1.8,
+            label=r"$-\,d(\mathrm{success})/dk$  (smoothed, panel f)",
+        ),
     ]
 
     # Grid arrengment
 
     output_path_grid = Path(IMAGES_DIR) / "NPP_phase_transition_sweep.png"
-    fig_g = plt.figure(figsize=(14, 8))
+    fig_g = plt.figure(figsize=(15, 9.5))
     gs = fig_g.add_gridspec(
         3,
         3,
-        hspace=0.38,
-        wspace=0.36,
-        height_ratios=[1, 1, 0.36],
+        hspace=0.5,
+        wspace=0.32,
+        height_ratios=[1, 1, 0.16],
     )
 
     ax_g00 = fig_g.add_subplot(gs[0, 0])
@@ -187,27 +195,24 @@ def plot_npp_metrics(
     ax_g_leg.set_axis_off()
     ax_g_leg.legend(
         handles=legend_handles,
-        fontsize=10,
+        fontsize=LEGEND_FONTSIZE,
         loc="center",
-        ncol=1,
+        ncol=len(legend_handles),
         framealpha=0.95,
         edgecolor="#d1d5db",
         borderpad=0.45,
         labelspacing=0.65,
     )
 
-    for ax in (ax_g00, ax_g01, ax_g02, ax_g10, ax_g11):
-        ax.tick_params(axis="x", labelbottom=False)
-
     # Titles and saving
 
     fig_g.suptitle(
         f"NPP phase transition - LON metric analysis (N={N}, {N_RUNS} ILS runs per k)",
-        fontsize=11,
+        fontsize=16,
         fontweight="bold",
         y=0.98,
     )
-    fig_g.subplots_adjust(left=0.07, right=0.98, top=0.90, bottom=0.11)
+    fig_g.subplots_adjust(left=0.07, right=0.98, top=0.90, bottom=0.04)
     fig_g.savefig(output_path_grid, dpi=300, bbox_inches="tight", pad_inches=0.12)
     plt.close(fig_g)
     print(f"Saved \u2192 {output_path_grid}")
@@ -221,41 +226,48 @@ RANDOM_SEED = 42
 EQ_ATOL = 1e-8
 
 K_VALUES = np.linspace(0.1, 1.0, 50)
+# Cap on worker processes, so the sweep behaves on shared machines.
+N_JOBS = int(os.environ.get("LONKIT_N_JOBS", "8"))
+
+
+def sweep_one(k: float) -> dict:
+    """Sample one NPP instance at the given k and return its CMLON metrics."""
+    sampler_config = ILSSamplerConfig(n_runs=N_RUNS, n_iter_no_change=N_ITER, seed=RANDOM_SEED)
+    lon_config = LONConfig(eq_atol=EQ_ATOL)
+
+    problem = NumberPartitioning(n=N, k=k, instance_seed=INSTANCE_SEED)
+    sampler = ILSSampler(sampler_config)
+    result = sampler.sample(problem)
+
+    lon = sampler.sample_to_lon(result, lon_config)
+    cmlon = lon.to_cmlon()
+
+    m = cmlon.compute_metrics()
+    print(
+        f"  k={k:.3f}  optima={m['n_optima']:>3}  funnels={m['n_funnels']:>2}  "
+        f"success={m['success']:.0%}",
+        flush=True,
+    )
+    return {
+        "k": k,
+        "n_optima": m["n_optima"],
+        "n_funnels": m["n_funnels"],
+        "global_strength": m["global_strength"],
+        "global_funnel_prop": m["global_funnel_proportion"],
+        "ils_success": m["success"],
+    }
 
 
 def main():
     Path(IMAGES_DIR).mkdir(parents=True, exist_ok=True)
 
-    print(f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS})\n")
+    print(
+        f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS}, "
+        f"{N_JOBS} worker processes)\n"
+    )
 
-    records = []
-    sampler_config = ILSSamplerConfig(n_runs=N_RUNS, n_iter_no_change=N_ITER, seed=RANDOM_SEED)
-    lon_config = LONConfig(eq_atol=EQ_ATOL)
-
-    for k in K_VALUES:
-        problem = NumberPartitioning(n=N, k=k, instance_seed=INSTANCE_SEED)
-        sampler = ILSSampler(sampler_config)
-        result = sampler.sample(problem)
-
-        lon = sampler.sample_to_lon(result, lon_config)
-        cmlon = lon.to_cmlon()
-
-        m = cmlon.compute_metrics()
-
-        records.append(
-            {
-                "k": k,
-                "n_optima": m["n_optima"],
-                "n_funnels": m["n_funnels"],
-                "global_strength": m["global_strength"],
-                "global_funnel_prop": m["global_funnel_proportion"],
-                "ils_success": m["success"],
-            }
-        )
-        print(
-            f"  k={k:.3f}  optima={m['n_optima']:>3}  funnels={m['n_funnels']:>2}  "
-            f"success={m['success']:.0%}"
-        )
+    with ProcessPoolExecutor(max_workers=N_JOBS) as executor:
+        records = list(executor.map(sweep_one, K_VALUES))
 
     ks = np.array([r["k"] for r in records])
     n_optima = np.array([r["n_optima"] for r in records])

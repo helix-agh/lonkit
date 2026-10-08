@@ -61,8 +61,10 @@ A **Local Optima Network (LON)** is a directed graph where:
 lonkit constructs LONs by:
 
 1. Running multiple Basin-Hopping searches
-2. Recording every accepted transition, where only non-worsening moves are accepted, so all LON edges are improving or equal (source optimum → target optimum)
+2. Recording every accepted transition (source optimum → target optimum); only non-worsening moves are accepted
 3. Aggregating transitions into a weighted graph
+
+Edges of a LON built from user-supplied traces (or after deduplicating nodes recorded with slightly different fitness values) may be worsening. When building a CMLON, worsening edges are removed with a warning. After neutral components are compressed, edges are checked again against the final component fitness values: only strictly improving edges outside the configured equality tolerance are retained. Any additional removals emit a warning. This second check is necessary because a chain of approximately equal fitness values can span more than the tolerance. Monotonicity is defined relative to the aggregated and compressed fitness values, in the configured optimization direction.
 
 ```python
 # Each transition creates an edge
