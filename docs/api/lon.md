@@ -40,9 +40,3 @@
         - max_fitness_deviation
         - eq_atol
         - minimize
-        - trace_validation
-
-::: lonkit.lon.validate_trace
-    options:
-      show_root_heading: true
-      show_source: true

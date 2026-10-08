@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.6.0
+
+Validates trace data in `LON.from_trace_data()`, making it safe to build LONs from traces produced outside of lonkit, e.g. by samplers implemented in other languages.
+
+### Highlights
+
+- `LON.from_trace_data()` now validates and normalizes the trace before building the LON:
+  - raises `ValueError` for malformed data: an empty trace, missing or extra columns, missing values, non-numeric (including datetime and boolean) or infinite fitness values, and node identifiers that are not all strings or all integers;
+  - emits a `UserWarning` for broken trajectories, i.e. when within a run `node2` of a row differs from `node1` of the next row, which usually means that rows are out of order or include rejected moves.
+- Node identifiers can be either all strings or all integers. Integers are converted to strings; mixing both types raises `ValueError`, so that e.g. `123` and `"123"` are never silently merged into one node.
+
+### API and Behavior Changes
+
+- Trace columns are matched by name and must be exactly `run`, `fit1`, `node1`, `fit2`, `node2`, in any order. Previously, columns were taken by position regardless of their names, so DataFrames with other column names must now be renamed.
+- An empty trace now raises `ValueError` instead of returning a LON without vertices and with a `NaN` best fitness. `sample_to_lon()` still returns an empty `LON` for an empty sampling result.
+- Fitness values are converted to `float`.
+
+### Bug Fixes
+
+- Integer node identifiers no longer cause all edges to be dropped. Vertices were named after a float-converted identifier (`"10.0"`) while edges were looked up by the original one (`"10"`), and the resulting errors were silently ignored. The built-in samplers always produce string identifiers and were not affected.
+
+### Documentation
+
+- Added a "Loading External Traces" section to the sampling user guide.
+
 ## 0.5.0
 
 Fixes CMLON construction so that the resulting graph is always monotonic, regardless of the input LON.

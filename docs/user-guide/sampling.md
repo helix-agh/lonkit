@@ -294,6 +294,36 @@ for record in result.raw_records[:5]:
     print(f"  Accepted: {record['accepted']}")
 ```
 
+## Loading External Traces
+
+`LON.from_trace_data()` accepts traces produced by any sampler, including ones implemented outside of Python. Write the transitions to a file and load them as a `DataFrame` with exactly these columns, in any order:
+
+| Column  | Description                                     |
+| ------- | ----------------------------------------------- |
+| `run`   | Run identifier                                  |
+| `fit1`  | Fitness of the source local optimum             |
+| `node1` | Identifier of the source local optimum          |
+| `fit2`  | Fitness of the target local optimum             |
+| `node2` | Identifier of the target local optimum          |
+
+Each row is one **accepted** transition between local optima. Within a run, rows must be in chronological order: the fitness in the last row of a run is taken as the run's final result. Node identifiers must be either all strings or all integers, and the same local optimum must always get the same identifier.
+
+```python
+import pandas as pd
+from lonkit import LON, LONConfig
+
+trace = pd.read_csv("trace.csv", dtype={"node1": str, "node2": str})
+lon = LON.from_trace_data(trace, config=LONConfig(minimize=True))
+```
+
+!!! warning "Leading zeros in node identifiers"
+    Without `dtype={"node1": str, "node2": str}`, `pd.read_csv()` parses identifiers such as bitstrings as integers, so `"0110"` and `"110"` both become `110` and different local optima are merged into one node.
+
+The trace is validated before the LON is built:
+
+- a `ValueError` is raised for malformed data, e.g. missing or extra columns, missing values, non-numeric or infinite fitness values, or node identifiers mixing strings and integers;
+- a `UserWarning` is emitted when a trajectory is broken, i.e. within a run `node2` of a row differs from `node1` of the next row. This usually means that rows are out of order or that rejected moves were included in the trace.
+
 ## Progress Monitoring
 
 Track sampling progress with a callback or the `verbose` flag:

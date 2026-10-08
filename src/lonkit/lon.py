@@ -29,11 +29,6 @@ class LONConfig:
             Useful for detecting data quality issues.
         eq_atol: Tolerance for considering fitness values as equal. Default: `1e-12`.
         minimize: Whether this is a minimization problem. Default: `True`.
-        trace_validation: How to validate trace data before construction (see `validate_trace`):
-            - `"warn"`: Raise on malformed data, warn on suspicious data
-            - `"strict"`: Raise on both malformed and suspicious data
-            - `"off"`: Skip validation, columns are taken positionally
-            Default: `"warn"`.
     """
 
     fitness_aggregation: Literal["min", "max", "mean", "first", "strict"] = "min"
@@ -41,7 +36,6 @@ class LONConfig:
     max_fitness_deviation: float | None = None
     eq_atol: float = DEFAULT_ATOL
     minimize: bool = True
-    trace_validation: Literal["warn", "strict", "off"] = "warn"
 
 
 @dataclass
@@ -76,12 +70,14 @@ class LON:
         Create a LON from trace data.
 
         Args:
-            trace: DataFrame with columns `[run, fit1, node1, fit2, node2]` where:
-                - run: integer run number
+            trace: DataFrame with one accepted transition per row, in chronological order
+                within each run, and columns `[run, fit1, node1, fit2, node2]` (in any order) where:
+                - run: run identifier
                 - fit1: fitness value of source node
-                - node1: string hash of source node
+                - node1: identifier of source node
                 - fit2: fitness value of target node
-                - node2: string hash of target node
+                - node2: identifier of target node
+                Node identifiers must be either all strings or all integers.
             config: Optional configuration for LON construction. If `None`, uses default
                 configuration with minimum fitness aggregation. Default: `None`.
 
@@ -94,17 +90,20 @@ class LON:
             the same node is recorded with different fitness values and these are aggregated
             (see `LONConfig.fitness_aggregation`). `CMLON.from_lon()` removes such edges.
 
+            The trace is validated before construction. Integer node identifiers are
+            converted to strings. A `UserWarning` is emitted if a trajectory is broken,
+            i.e. within a run `node2` of a row differs from `node1` of the next row,
+            which usually means that rows are out of order or include rejected moves.
+
         Raises:
-            ValueError: If the trace fails validation (see `validate_trace`),
-                if fitness_aggregation is `"strict"` and duplicates are detected,
-                or if `max_fitness_deviation` threshold is exceeded.
+            ValueError: If the trace is malformed: it is empty, its columns differ from
+                `[run, fit1, node1, fit2, node2]`, it has missing values, fitness values
+                are non-numeric or infinite, or node identifiers are not all strings or
+                all integers. Also raised if fitness_aggregation is `"strict"` and duplicates are
+                detected, or if `max_fitness_deviation` threshold is exceeded.
         """
         config = config or LONConfig()
-        if config.trace_validation == "off":
-            trace = trace.copy()
-            trace.columns = pd.Index(TRACE_COLUMNS)
-        else:
-            trace = validate_trace(trace, strict=config.trace_validation == "strict")
+        trace = _validate_trace(trace)
 
         # Extract final fitness value from each run as a Series
         final_run_values = trace.groupby("run").tail(1).set_index("run")["fit2"]
@@ -820,95 +819,55 @@ def _validate_duplicate_nodes(
         )
 
 
-def validate_trace(trace: pd.DataFrame, strict: bool = False) -> pd.DataFrame:
+def _validate_trace(trace: pd.DataFrame) -> pd.DataFrame:
     """
     Validate and normalize trace data for `LON.from_trace_data`.
-
-    Useful when the trace comes from an external source, e.g. a CSV file written
-    by a sampler implemented in another language.
-
-    Columns are matched by name if all of `[run, fit1, node1, fit2, node2]` are
-    present (extra columns are dropped); otherwise a trace with exactly five
-    columns is interpreted positionally in that order.
-
-    Malformed data always raises:
-        - empty trace, or columns that cannot be matched
-        - missing `run` values
-        - non-numeric, missing or infinite fitness values
-        - missing or empty node identifiers
-
-    Suspicious data warns, or raises if `strict` is `True`:
-        - broken trajectories, i.e. within a run `node2` of a row differs from
-          `node1` of the next row. This usually means that rows are not in
-          chronological order (final run values would be wrong) or that rejected
-          moves were included in the trace.
-
-    Args:
-        trace: DataFrame with trace data.
-        strict: Whether to raise on suspicious data instead of warning. Default: `False`.
 
     Returns:
         A copy of the trace with columns `[run, fit1, node1, fit2, node2]`,
         float fitness values and string node identifiers.
 
     Raises:
-        ValueError: If the trace is malformed, or suspicious and `strict` is `True`.
+        ValueError: If the trace is malformed.
     """
+    if trace.columns.duplicated().any() or set(trace.columns) != set(TRACE_COLUMNS):
+        raise ValueError(
+            f"Trace must have exactly the columns {TRACE_COLUMNS} (in any order), "
+            f"got {list(trace.columns)}. Rename the columns of external traces explicitly."
+        )
     if trace.empty:
         raise ValueError("Trace is empty.")
+    trace = trace[TRACE_COLUMNS].copy()
 
-    if set(TRACE_COLUMNS).issubset(trace.columns):
-        trace = trace[TRACE_COLUMNS].copy()
-    elif trace.shape[1] == len(TRACE_COLUMNS):
-        trace = trace.copy()
-        trace.columns = pd.Index(TRACE_COLUMNS)
-    else:
-        raise ValueError(
-            f"Trace must contain columns {TRACE_COLUMNS} or have exactly "
-            f"{len(TRACE_COLUMNS)} columns in that order, got {list(trace.columns)}."
-        )
-
-    if trace["run"].isna().any():
-        raise ValueError(f"Missing run values in rows {_first_rows(trace['run'].isna())}.")
+    missing = trace.isna().any()
+    if missing.any():
+        raise ValueError(f"Missing values in columns {missing[missing].index.tolist()}.")
 
     for col in ["fit1", "fit2"]:
-        values = pd.to_numeric(trace[col], errors="coerce").astype(float)
-        invalid = values.isna() | values.isin([np.inf, -np.inf])
-        if invalid.any():
+        dtype = trace[col].dtype
+        if not pd.api.types.is_numeric_dtype(dtype) or pd.api.types.is_bool_dtype(dtype):
             raise ValueError(
-                f"Non-numeric, missing or infinite values in column '{col}' "
-                f"in rows {_first_rows(invalid)}."
+                f"Column '{col}' must contain numeric fitness values, got dtype {dtype}."
             )
-        trace[col] = values
+        trace[col] = trace[col].astype(float)
+        if np.isinf(trace[col]).any():
+            raise ValueError(f"Infinite fitness values in column '{col}'.")
 
-    for col in ["node1", "node2"]:
-        invalid = trace[col].isna()
-        trace[col] = trace[col].astype(str)
-        invalid |= trace[col].str.strip() == ""
-        if invalid.any():
-            raise ValueError(
-                f"Missing or empty node identifiers in column '{col}' "
-                f"in rows {_first_rows(invalid)}."
-            )
+    ids = pd.concat([trace["node1"], trace["node2"]])
+    if pd.api.types.infer_dtype(ids) not in ("string", "integer"):
+        raise ValueError("Node identifiers must be either all strings or all integers.")
+    trace["node1"] = trace["node1"].astype(str)
+    trace["node2"] = trace["node2"].astype(str)
 
     next_node1 = trace.groupby("run", sort=False)["node1"].shift(-1)
     broken = next_node1.notna() & (next_node1 != trace["node2"])
     if broken.any():
-        message = (
-            f"Detected {int(broken.sum())} broken trajectory step(s) in rows "
-            f"{_first_rows(broken)}: node2 differs from node1 of the next row in the same run. "
-            f"Rows within a run must be in chronological order and contain only "
-            f"accepted transitions."
+        warnings.warn(
+            f"Detected {int(broken.sum())} broken trajectory step(s): node2 differs from "
+            f"node1 of the next row in the same run. Rows within a run must be in "
+            f"chronological order and contain only accepted transitions.",
+            category=UserWarning,
+            stacklevel=3,
         )
-        if strict:
-            raise ValueError(message)
-        warnings.warn(message, category=UserWarning, stacklevel=3)
 
     return trace
-
-
-def _first_rows(mask: pd.Series, limit: int = 5) -> str:
-    """Format index labels of the first rows matching a boolean mask."""
-    rows = mask[mask].index[:limit].tolist()
-    suffix = ", ..." if mask.sum() > limit else ""
-    return f"{rows}{suffix}"
