@@ -39,3 +39,4 @@
         - warn_on_duplicates
         - max_fitness_deviation
         - eq_atol
+        - minimize
