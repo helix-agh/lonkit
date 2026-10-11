@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from lonkit import LON, BasinHoppingSampler, ILSSampler, ILSSamplerConfig, NKLandscape
+from lonkit import LON, BasinHoppingSampler, ILSSampler, ILSSamplerConfig, LONConfig, NKLandscape
 from lonkit.lon import _validate_trace
 from tests.conftest import DEFAULT_CONFIG, DOMAIN_2D, SEED, rastrigin
 
@@ -98,9 +98,23 @@ class TestFitness:
         with pytest.raises(ValueError, match="'fit2' must contain numeric fitness values"):
             _validate_trace(trace)
 
-    def test_integer_fitness_converted_to_float(self) -> None:
+    def test_integer_fitness_dtype_preserved(self) -> None:
         trace = make_trace().astype({"fit1": int})
-        assert _validate_trace(trace)["fit1"].dtype == float
+        assert _validate_trace(trace)["fit1"].dtype == int
+
+    def test_large_integer_fitness_conflict_detected_in_strict_mode(self) -> None:
+        # Regression: casting to float merged 2**53 and 2**53 + 1 into one value
+        trace = pd.DataFrame(
+            {
+                "run": [1, 1],
+                "fit1": [2**53, 2**53 + 1],
+                "node1": ["a", "a"],
+                "fit2": [0, 0],
+                "node2": ["b", "b"],
+            }
+        )
+        with pytest.raises(ValueError, match="strict mode"):
+            LON.from_trace_data(trace, LONConfig(fitness_aggregation="strict"))
 
 
 class TestRun:

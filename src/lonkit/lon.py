@@ -823,8 +823,7 @@ def _validate_trace(trace: pd.DataFrame) -> pd.DataFrame:
     Validate and normalize trace data for `LON.from_trace_data`.
 
     Returns:
-        A copy of the trace with columns `[run, fit1, node1, fit2, node2]`,
-        float fitness values and string node identifiers.
+        A copy of the trace with columns `[run, fit1, node1, fit2, node2]`.
 
     Raises:
         ValueError: If the trace is malformed.
@@ -852,7 +851,6 @@ def _validate_trace(trace: pd.DataFrame) -> pd.DataFrame:
             raise ValueError(
                 f"Column '{col}' must contain numeric fitness values, got dtype {dtype}."
             )
-        trace[col] = trace[col].astype(float)
         if np.isinf(trace[col]).any():
             raise ValueError(f"Infinite fitness values in column '{col}'.")
 

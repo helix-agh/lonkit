@@ -15,7 +15,6 @@ Validates trace data in `LON.from_trace_data()`, making it safe to build LONs fr
 - Trace columns are matched by name and must be exactly `run`, `fit1`, `node1`, `fit2`, `node2`, in any order. Previously, columns were taken by position regardless of their names, so DataFrames with other column names must now be renamed.
 - An empty trace now raises `ValueError` instead of returning a LON without vertices and with a `NaN` best fitness. `sample_to_lon()` still returns an empty `LON` for an empty sampling result.
 - The documented column types are now enforced: `run` must be an integer column and node identifiers must be strings. In particular, a CSV file read without `dtype={"node1": str, "node2": str}` is rejected instead of silently losing leading zeros of identifiers such as bitstrings.
-- Fitness values are converted to `float`.
 
 ### Bug Fixes
 
