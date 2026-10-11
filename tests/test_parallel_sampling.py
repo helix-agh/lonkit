@@ -1,8 +1,12 @@
+import time
+
+import joblib
 import numpy as np
 import pandas as pd
 import pytest
 
 from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit.continuous import sampling as sampling_module
 from tests.conftest import DOMAIN_2D, SEED, griewank, rastrigin, sphere
 
 
@@ -84,3 +88,32 @@ class TestParallelReproducibility:
         result_seq = _run(SEED, n_jobs=1, func=func)
         result_par = _run(SEED, n_jobs=2, func=func)
         _assert_raw_records_equal(result_seq.raw_records, result_par.raw_records)
+
+
+class TestParallelProgress:
+    """Parallel mode reports progress like sequential mode."""
+
+    @pytest.fixture
+    def first_run_finishes_last(self, monkeypatch):
+        """Delay run 1 so parallel runs complete out of order.
+
+        The threading backend keeps the patched worker visible to joblib.
+        """
+        worker = sampling_module._run_single_bh_in_worker
+
+        def slow_first_run(run, *args):
+            if run == 1:
+                time.sleep(0.5)
+            return worker(run, *args)
+
+        monkeypatch.setattr(sampling_module, "_run_single_bh_in_worker", slow_first_run)
+        with joblib.parallel_backend("threading"):
+            yield
+
+    @pytest.mark.parametrize("n_jobs", [1, 2])
+    def test_progress_reports_completed_runs(self, n_jobs: int, first_run_finishes_last) -> None:
+        """The callback receives the number of completed runs, not the finished run id."""
+        calls = []
+        sampler = BasinHoppingSampler(_make_config(SEED, n_jobs))
+        sampler.sample(sphere, DOMAIN_2D, progress_callback=lambda c, t: calls.append((c, t)))
+        assert calls == [(i, 8) for i in range(1, 9)]
