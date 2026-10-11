@@ -1,4 +1,3 @@
-import contextlib
 import warnings
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -149,17 +148,22 @@ class LON:
         edges = trace.groupby(["node1", "node2"], as_index=False).size()
         edges.columns = pd.Index(["Start", "End", "Count"])
 
-        graph = ig.Graph(directed=True)
-
-        for _, row in nodes.iterrows():
-            graph.add_vertex(name=str(row["Node"]), Fitness=row["Fitness"], Count=row["Count"])
-
-        for _, row in edges.iterrows():
-            with contextlib.suppress(ValueError):
-                graph.add_edge(str(row["Start"]), str(row["End"]), Count=row["Count"])
-
         # Remove self-loops
-        graph = graph.simplify(multiple=False, loops=True)
+        edges = edges[edges["Start"] != edges["End"]]
+
+        node_index = pd.Series(np.arange(len(nodes)), index=nodes["Node"])
+        edge_list = list(
+            zip(
+                node_index[edges["Start"]].to_numpy().tolist(),
+                node_index[edges["End"]].to_numpy().tolist(),
+            )
+        )
+
+        graph = ig.Graph(n=len(nodes), edges=edge_list, directed=True)
+        graph.vs["name"] = nodes["Node"].astype(str).tolist()
+        graph.vs["Fitness"] = nodes["Fitness"].tolist()
+        graph.vs["Count"] = nodes["Count"].tolist()
+        graph.es["Count"] = edges["Count"].tolist()
 
         best = nodes["Fitness"].min() if config.minimize else nodes["Fitness"].max()
 
