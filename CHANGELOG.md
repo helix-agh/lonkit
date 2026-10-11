@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+Adds the number of edges to the network metrics.
+
+### Highlights
+
+- `LON.compute_network_metrics()` and `CMLON.compute_network_metrics()`, and therefore `compute_metrics()`, now also return `n_edges`, the number of edges in the network.
+
 ## 0.6.0
 
 Validates trace data in `LON.from_trace_data()`, making it safe to build LONs from traces produced outside of lonkit, e.g. by samplers implemented in other languages, and makes LON construction much faster for large traces.

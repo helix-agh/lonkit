@@ -236,6 +236,7 @@ class LON:
         Returns:
             Dictionary containing:
                 - n_optima: Number of local optima (vertices)
+                - n_edges: Number of edges
                 - n_funnels: Number of funnels (sinks)
                 - n_global_funnels: Number of funnels at global optimum
                 - neutral: Proportion of nodes with equal-fitness connections
@@ -295,6 +296,7 @@ class LON:
 
         return {
             "n_optima": n_optima,
+            "n_edges": self.n_edges,
             "n_funnels": n_funnels,
             "n_global_funnels": n_global_funnels,
             "neutral": neutral,
@@ -345,7 +347,7 @@ class LON:
 
         Returns:
             Dictionary containing all network and performance metrics:
-                Network metrics: n_optima, n_funnels, n_global_funnels, neutral, global_strength, sink_strength
+                Network metrics: n_optima, n_edges, n_funnels, n_global_funnels, neutral, global_strength, sink_strength
                 Performance metrics: success, deviation
         """
         network_metrics = self.compute_network_metrics(known_best)
@@ -563,6 +565,7 @@ class CMLON:
         Returns:
             Dictionary containing:
                 - n_optima: Number of optima in CMLON
+                - n_edges: Number of edges in CMLON
                 - n_funnels: Number of funnels (sinks)
                 - n_global_funnels: Number of funnels at global optimum
                 - neutral: Proportion of contracted nodes
@@ -619,6 +622,7 @@ class CMLON:
 
         return {
             "n_optima": n_optima,
+            "n_edges": self.n_edges,
             "n_funnels": n_funnels,
             "n_global_funnels": n_global_funnels,
             "neutral": neutral,
@@ -675,7 +679,7 @@ class CMLON:
 
         Returns:
             Dictionary containing all network and performance metrics:
-                Network metrics: n_optima, n_funnels, n_global_funnels, neutral,
+                Network metrics: n_optima, n_edges, n_funnels, n_global_funnels, neutral,
                     global_strength, sink_strength, global_funnel_proportion
                 Performance metrics: success, deviation (from source LON)
         """

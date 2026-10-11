@@ -82,6 +82,10 @@ class TestLONProperties:
         metrics = npp_lon.compute_network_metrics()
         assert metrics["n_global_funnels"] <= metrics["n_funnels"]
 
+    def test_n_edges_metric_matches_graph(self, npp_lon):
+        """n_edges metric should equal the number of graph edges."""
+        assert npp_lon.compute_network_metrics()["n_edges"] == npp_lon.graph.ecount()
+
 
 class TestCMLONProperties:
     """Properties that must hold for any CMLON."""
@@ -118,6 +122,10 @@ class TestCMLONProperties:
     def test_cmlon_fewer_or_equal_vertices(self, npp_lon, npp_cmlon):
         """CMLON has at most as many vertices as the source LON."""
         assert npp_cmlon.n_vertices <= npp_lon.n_vertices
+
+    def test_cmlon_n_edges_metric_matches_graph(self, npp_cmlon):
+        """CMLON n_edges metric should equal the number of graph edges."""
+        assert npp_cmlon.compute_network_metrics()["n_edges"] == npp_cmlon.graph.ecount()
 
     def test_cmlon_preserves_best_fitness(self, npp_lon, npp_cmlon):
         """CMLON best_fitness matches source LON best_fitness."""
