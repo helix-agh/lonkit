@@ -59,6 +59,7 @@ print(f"Sink strength: {metrics['sink_strength']:.1%}")
 | Metric | Description |
 |--------|-------------|
 | `n_optima` | Total number of local optima discovered |
+| `n_edges` | Number of distinct transitions between optima |
 | `n_funnels` | Number of sink nodes (basins of attraction) |
 | `n_global_funnels` | Funnels leading to the global optimum |
 | `neutral` | Proportion of nodes with equal-fitness neighbors |

@@ -92,6 +92,7 @@ lonkit computes several metrics to characterize fitness landscapes:
 | Metric | Description | Interpretation |
 |--------|-------------|----------------|
 | `n_optima` | Number of local optima | Problem multimodality |
+| `n_edges` | Number of transitions between optima | Network connectivity |
 | `n_funnels` | Number of sinks (no outgoing edges) | Distinct attraction basins |
 | `n_global_funnels` | Sinks at global optimum | How many paths lead to success |
 | `neutral` | Proportion of equal-fitness connections | Landscape flatness |
