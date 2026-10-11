@@ -2,13 +2,14 @@
 
 ## 0.6.0
 
-Validates trace data in `LON.from_trace_data()`, making it safe to build LONs from traces produced outside of lonkit, e.g. by samplers implemented in other languages.
+Validates trace data in `LON.from_trace_data()`, making it safe to build LONs from traces produced outside of lonkit, e.g. by samplers implemented in other languages, and makes LON construction much faster for large traces.
 
 ### Highlights
 
 - `LON.from_trace_data()` now validates the trace before building the LON:
   - raises `ValueError` for malformed data: an empty trace, missing or extra columns, missing values, non-integer run numbers, non-numeric (including datetime and boolean) or infinite fitness values, and non-string node identifiers;
   - emits a `UserWarning` for broken trajectories, i.e. when within a run `node2` of a row differs from `node1` of the next row, which usually means that rows are out of order or include rejected moves.
+- `LON.from_trace_data()` builds the graph in bulk instead of adding vertices and edges one by one, so construction time now grows linearly instead of quadratically with the trace size (e.g. ~8× faster for 1,000 trace rows and ~590× faster for 50,000).
 
 ### API and Behavior Changes
 
