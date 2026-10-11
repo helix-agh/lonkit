@@ -2,6 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any
 
+import joblib
 import numpy as np
 import pandas as pd
 
@@ -29,7 +30,13 @@ class ILSSamplerConfig:
         seed: Random seed for reproducibility. Controls ALL search
             randomness: initial solution generation, local search
             scan order, and perturbation. The problem instance is
-            stateless and receives the sampler's RNG. Default: None.
+            stateless and receives the sampler's RNG. Each run uses a separate
+            RNG spawned from SeedSequence(seed), giving identical results across
+            n_jobs values. Default: None.
+        n_jobs: Maximum number of concurrent joblib jobs. 1 runs directly
+            without workers; -1 uses all CPUs; negative values reserve CPUs
+            as in joblib. None uses the joblib context setting, or 1 without
+            a context. 0 is invalid. Processes are preferred. Default: 1.
     """
 
     n_runs: int = 100
@@ -37,15 +44,18 @@ class ILSSamplerConfig:
     max_iter: int | None = None
     accept_equal: bool = True
     seed: int | None = None
+    n_jobs: int | None = 1
 
     def __post_init__(self) -> None:
         if self.n_iter_no_change is not None and self.n_iter_no_change <= 0:
             raise ValueError("n_iter_no_change must be positive or None.")
         if self.max_iter is not None and self.max_iter <= 0:
             raise ValueError("max_iter must be positive or None.")
+        if self.n_jobs == 0:
+            raise ValueError("n_jobs must be nonzero or None.")
         if self.n_iter_no_change is None and self.max_iter is None:
             raise ValueError(
-                "At least one stopping criterion must be set: " "n_iter_no_change and/or max_iter."
+                "At least one stopping criterion must be set: n_iter_no_change and/or max_iter."
             )
 
 
@@ -78,15 +88,18 @@ class ILSSampler:
     in the same trace format as BasinHoppingSampler, enabling direct use
     with LON.from_trace_data().
 
-    The sampler owns all search randomness via a single `numpy.random.Generator`
-    instance created from `ILSSamplerConfig.seed`. The problem instance
-    is stateless — the sampler passes its RNG into every problem method
-    call (`random_solution`, `local_search`, `perturb`).
+    The sampler owns all search randomness via a separate `numpy.random.Generator`
+    per run, derived from `SeedSequence(seed).spawn(n_runs)` in both sequential
+    and parallel modes. Fixed seeds produce identical results across `n_jobs`
+    values, but differ from earlier versions that shared one RNG across runs.
+    The problem has no mutable search state and receives the run's RNG in
+    `random_solution`, `local_search`, and `perturb`. Workers receive the existing
+    problem data; they do not regenerate the problem instance.
 
     Example:
         >>> from lonkit.discrete import NumberPartitioning, ILSSampler, ILSSamplerConfig
         >>> problem = NumberPartitioning(n=20, k=0.5, instance_seed=1)
-        >>> config = ILSSamplerConfig(n_runs=10, n_iter_no_change=100, seed=42)
+        >>> config = ILSSamplerConfig(n_runs=10, n_iter_no_change=100, seed=42, n_jobs=2)
         >>> sampler = ILSSampler(config)
         >>> result = sampler.sample(problem)
         >>> lon = sampler.sample_to_lon(result)
@@ -107,22 +120,35 @@ class ILSSampler:
             problem: A DiscreteProblem instance defining the optimization
                 problem, local search, and perturbation operators.
                 The problem must be stateless — the sampler provides
-                the RNG.
-            progress_callback: Optional callback(run, total_runs) for
-                progress reporting. Default: None.
+                the RNG. Custom problems must be serializable by joblib for
+                process execution. Process overhead can outweigh the benefit
+                for short runs.
+            progress_callback: Optional callback(completed_runs, total_runs),
+                called in the main process once after each completed run is
+                received. Results are received in run order, so an earlier slow
+                run can delay progress notifications. Default: None.
 
         Returns:
             ILSResult with trace DataFrame and raw records.
         """
-        rng = np.random.default_rng(self.config.seed)
+        run_seeds = np.random.SeedSequence(self.config.seed).spawn(self.config.n_runs)
+        n_jobs = joblib.effective_n_jobs(self.config.n_jobs)
+        if n_jobs == 1:
+            run_results = (
+                self._ils_run(problem, run, np.random.default_rng(seed))
+                for run, seed in enumerate(run_seeds, 1)
+            )
+        else:
+            run_results = joblib.Parallel(n_jobs=n_jobs, prefer="processes", return_as="generator")(
+                joblib.delayed(self._ils_run)(problem, run, np.random.default_rng(seed))
+                for run, seed in enumerate(run_seeds, 1)
+            )
+
         raw_records = []
-
-        for run in range(1, self.config.n_runs + 1):
-            if progress_callback:
-                progress_callback(run, self.config.n_runs)
-
-            run_records = self._ils_run(problem, run, rng)
+        for completed_runs, run_records in enumerate(run_results, 1):
             raw_records.extend(run_records)
+            if progress_callback:
+                progress_callback(completed_runs, self.config.n_runs)
 
         trace_df = self._construct_trace_data(raw_records)
         return ILSResult(trace_df=trace_df, raw_records=raw_records, minimize=problem.minimize)
