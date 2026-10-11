@@ -366,9 +366,9 @@ class BasinHoppingSampler:
         result_iter = (
             tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
         )
-        for _, (run, records, nfev) in enumerate(result_iter, 1):
+        for completed_runs, (_, records, nfev) in enumerate(result_iter, 1):
             if progress_callback:
-                progress_callback(run, self.config.n_runs)
+                progress_callback(completed_runs, self.config.n_runs)
             raw_records.extend(records)
             nfev_total += nfev
 
@@ -395,9 +395,9 @@ class BasinHoppingSampler:
             func: Objective function to minimize (f: R^n_var -> R).
             domain: List of (lower, upper) bounds per dimension.
             initial_points: Array of shape (config.n_runs, n_var) with initial points.
-            progress_callback: Optional callback(run, total_runs) for progress.
-                Called after each run completes. Always called from the main process,
-                regardless of ``n_jobs``.
+            progress_callback: Optional callback(completed_runs, total_runs) for
+                progress. Called after each run completes. Always called from the main
+                process, regardless of ``n_jobs``.
 
         Returns:
             Tuple of (raw_records, nfev_total) where raw_records is a list of
@@ -547,8 +547,8 @@ class BasinHoppingSampler:
             initial_points: Optional array of shape (`config.n_runs`, `n_var`) with
                 starting points for each run. If `None`, points are sampled
                 uniformly at random from the domain. Default: `None`.
-            progress_callback: Optional callback(run, total_runs) for progress.
-                Called after each run completes. Default: `None`.
+            progress_callback: Optional callback(completed_runs, total_runs) for
+                progress. Called after each run completes. Default: `None`.
             verbose:  If True, show a progress bar during sampling. Default: `False`.
         Returns:
             BasinHoppingResult: Result of the sampling run.

@@ -1,11 +1,23 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
+
+Adds parallel Iterated Local Search sampling for discrete problems.
+
+### Highlights
 
 - Added `ILSSamplerConfig.n_jobs` for parallel ILS runs through joblib, preferring processes. Effective `n_jobs=1` executes directly without workers.
 - ILS now spawns a separate RNG per run, producing identical ordered records and traces across job counts for a fixed seed. Seeded results differ from earlier versions that shared one RNG across runs.
 - ILS progress callbacks now run in the main process after each completed run is received, reporting completed and total run counts. Results are received in run order. Worker errors propagate to the caller.
 - Documented parallel ILS usage, custom problem serialization, and process overhead for short runs.
+
+### Bug Fixes
+
+- Parallel Basin-Hopping progress callbacks now report the number of completed runs instead of the ID of the run that just finished, so progress increases monotonically even when runs finish out of order.
+
+### Examples
+
+- BIOMA figure titles now use `D` for problem dimension.
 
 ## 0.7.0
 
