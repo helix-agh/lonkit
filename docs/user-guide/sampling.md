@@ -294,6 +294,36 @@ for record in result.raw_records[:5]:
     print(f"  Accepted: {record['accepted']}")
 ```
 
+## Loading External Traces
+
+`LON.from_trace_data()` accepts traces produced by any sampler, including ones implemented outside of Python. Write the transitions to a file and load them as a `DataFrame` with exactly these columns, in any order:
+
+| Column  | Description                                     |
+| ------- | ----------------------------------------------- |
+| `run`   | Integer run number                              |
+| `fit1`  | Fitness of the source local optimum             |
+| `node1` | String identifier of the source local optimum   |
+| `fit2`  | Fitness of the target local optimum             |
+| `node2` | String identifier of the target local optimum   |
+
+Each row is one **accepted** transition between local optima. Within a run, rows must be in chronological order: the fitness in the last row of a run is taken as the run's final result. The same local optimum must always get the same identifier.
+
+```python
+import pandas as pd
+from lonkit import LON, LONConfig
+
+trace = pd.read_csv("trace.csv", dtype={"node1": str, "node2": str})
+lon = LON.from_trace_data(trace, config=LONConfig(minimize=True))
+```
+
+!!! warning "Leading zeros in node identifiers"
+    Without `dtype={"node1": str, "node2": str}`, `pd.read_csv()` parses identifiers such as bitstrings as integers and drops their leading zeros (`"0110"` becomes `110`), which could merge different local optima into one node. `LON.from_trace_data()` therefore rejects non-string node identifiers.
+
+The trace is validated before the LON is built:
+
+- a `ValueError` is raised for malformed data, e.g. missing or extra columns, missing values, non-integer run numbers, non-numeric or infinite fitness values, or non-string node identifiers;
+- a `UserWarning` is emitted when a trajectory is broken, i.e. within a run `node2` of a row differs from `node1` of the next row. This usually means that rows are out of order or that rejected moves were included in the trace.
+
 ## Progress Monitoring
 
 Track sampling progress with a callback or the `verbose` flag:
