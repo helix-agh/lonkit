@@ -182,7 +182,7 @@ def save_network_grid(
 
             label = labels[label_idx]
             ax.set_title(
-                f"({label}) {func_name}, $n$ = {n_var}\nsuccess = {success:.2f}",
+                f"({label}) {func_name}, $D$ = {n_var}\nsuccess = {success:.2f}",
                 fontsize=title_fontsize,
                 pad=0.6 * title_fontsize,
             )
