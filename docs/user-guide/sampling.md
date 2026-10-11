@@ -1,10 +1,10 @@
 ---
-description: Configuration and usage of Basin-Hopping sampling for constructing Local Optima Networks. Perturbation, step size, and stopping condition controls.
+description: Configuration and usage of Basin-Hopping and Iterated Local Search sampling for constructing Local Optima Networks. Perturbation, step size, and stopping condition controls.
 ---
 
 # Sampling Guide
 
-This guide covers how to configure Basin-Hopping sampling for LON construction.
+This guide covers Basin-Hopping sampling for continuous problems and Iterated Local Search (ILS) for discrete problems.
 
 ## Quick Start
 
@@ -167,6 +167,42 @@ config = BasinHoppingSamplerConfig(
     }
 )
 ```
+
+## Discrete Sampling with ILS
+
+Independent ILS runs can use multiple processes via `n_jobs`:
+
+```python
+from lonkit import ILSSampler, ILSSamplerConfig, NumberPartitioning
+
+problem = NumberPartitioning(n=20, k=0.5, instance_seed=1)
+sampler = ILSSampler(ILSSamplerConfig(n_runs=20, max_iter=100, seed=42, n_jobs=2))
+result = sampler.sample(problem)
+lon = sampler.sample_to_lon(result)
+```
+
+`n_jobs` follows joblib semantics, as in `BasinHoppingSampler`: `1` (the default)
+runs sequentially, `-1` uses all available CPUs, and `-2` leaves one CPU unused.
+`None` uses the joblib context setting, or `1` without a context; `0` is invalid.
+When the effective number of jobs is one, ILS runs directly without workers.
+Parallel execution prefers processes. Custom problems must be serializable by
+joblib and must not hold mutable search state. All runs use the supplied problem's
+data; workers do not regenerate instances. For short runs, process startup and
+serialization overhead can outweigh parallelism's benefit. Worker errors propagate
+to the caller.
+
+Each run gets its own RNG from `SeedSequence(seed).spawn(n_runs)` in both modes.
+With a fixed seed and the same problem data, `raw_records` and `trace_df` are
+identical across `n_jobs` values, including run and record order. **Seeded ILS
+results change compared with earlier versions**, which shared one RNG across
+all runs. Custom problems must use the supplied RNG for all search randomness.
+
+`sample(problem, progress_callback=callback)` calls
+`callback(completed_runs, total_runs)` in the main process once after receiving
+each completed run, with counts from `1` through `n_runs`. Results are received
+in run order, so an earlier slow run can delay notifications for later runs.
+This also changes sequential callbacks from before a run to after its completion.
+The `ILSResult` format and `sample_to_lon()` usage remain unchanged.
 
 ## LON Construction Configuration
 

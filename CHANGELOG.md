@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Added `ILSSamplerConfig.n_jobs` for parallel ILS runs through joblib, preferring processes. Effective `n_jobs=1` executes directly without workers.
+- ILS now spawns a separate RNG per run, producing identical ordered records and traces across job counts for a fixed seed. Seeded results differ from earlier versions that shared one RNG across runs.
+- ILS progress callbacks now run in the main process after each completed run is received, reporting completed and total run counts. Results are received in run order. Worker errors propagate to the caller.
+- Documented parallel ILS usage, custom problem serialization, and process overhead for short runs.
+
 ## 0.7.0
 
 Adds the number of edges to the network metrics.
