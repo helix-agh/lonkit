@@ -5,6 +5,7 @@
 ### Bug Fixes
 
 - Raised the minimum joblib version to 1.4.0, which introduced the `generator_unordered` mode required by parallel Basin-Hopping sampling.
+- `BitstringProblem.local_search()` now returns a full `evaluate()` of the final solution instead of the fitness accumulated from deltas. For `NKLandscape`, float drift gave the same local optimum slightly different fitness values on different visits. ILS then counted returns to the same optimum as improvements, and the LON had duplicate nodes with multiple fitness values. Seeded NK samples may differ from earlier versions.
 
 ## 0.8.0
 
