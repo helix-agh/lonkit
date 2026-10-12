@@ -344,6 +344,8 @@ for record in result.raw_records[:5]:
 
 Each row is one **accepted** transition between local optima. Within a run, rows must be in chronological order: the fitness in the last row of a run is taken as the run's final result. The same local optimum must always get the same identifier.
 
+A run that never accepts a move after its initial local search should still get one row, from its local optimum to itself (`node1 == node2`). Otherwise its optimum is missing from the LON and the run is left out of `success` and `deviation`. Self-loops are dropped from the graph, so such rows add a vertex but no edges. The built-in samplers record these runs this way.
+
 ```python
 import pandas as pd
 from lonkit import LON, LONConfig

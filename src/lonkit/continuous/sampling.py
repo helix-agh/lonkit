@@ -487,6 +487,24 @@ class BasinHoppingSampler:
                 }
             )
 
+        # A run with no accepted moves keeps its initial minimum as a self-loop row
+        # (dropped from the graph by LON.from_trace_data()), so it still counts
+        # towards success/deviation. Non-finite minima are skipped.
+        runs_in_trace = {row["run"] for row in trace_records}
+        first_records: dict[int, dict] = {}
+        for rec in raw_records:
+            first_records.setdefault(rec["run"], rec)
+        for run, rec in first_records.items():
+            if run in runs_in_trace or not np.isfinite(rec["current_f"]):
+                continue
+            node = self._hash_solution(
+                self._round_value(rec["current_x"], self.config.coordinate_precision)
+            )
+            fit = self._round_value(rec["current_f"], self.config.fitness_precision)
+            trace_records.append(
+                {"run": run, "fit1": fit, "node1": node, "fit2": fit, "node2": node}
+            )
+
         trace_df = pd.DataFrame(trace_records, columns=["run", "fit1", "node1", "fit2", "node2"])
         trace_df = trace_df.sort_values(by=["run"], kind="mergesort").reset_index(drop=True)
         return trace_df
