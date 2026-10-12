@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug Fixes
+
+- Raised the minimum joblib version to 1.4.0, which introduced the `generator_unordered` mode required by parallel Basin-Hopping sampling.
+
 ## 0.8.0
 
 Adds parallel Iterated Local Search sampling for discrete problems.
