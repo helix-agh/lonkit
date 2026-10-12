@@ -198,17 +198,17 @@ class LON:
     @property
     def vertex_names(self) -> list[str]:
         """List of vertex names (node hashes)."""
-        return list(self.graph.vs["name"])
+        return list(self.graph.vs["name"]) if self.n_vertices else []
 
     @property
     def vertex_fitness(self) -> list[float]:
         """List of vertex fitness values."""
-        return list(self.graph.vs["Fitness"])
+        return list(self.graph.vs["Fitness"]) if self.n_vertices else []
 
     @property
     def vertex_count(self) -> list[int]:
         """List of vertex counts (times visited)."""
-        return list(self.graph.vs["Count"])
+        return list(self.graph.vs["Count"]) if self.n_vertices else []
 
     def _allclose(self, f1: float | None, f2: float | None) -> bool:
         """Check if two fitness values are equal within tolerance."""
@@ -228,6 +228,8 @@ class LON:
     def compute_network_metrics(self, known_best: float | None = None) -> dict[str, Any]:
         """
         Compute LON network metrics.
+
+        Empty networks return zero for all network metrics.
 
         Args:
             known_best: Known global optimum value. If `None`, uses the best
@@ -308,6 +310,9 @@ class LON:
         """
         Compute performance metrics based on sampling runs.
 
+        Returns zero for both metrics when run values are absent or empty,
+        or when no best fitness is available.
+
         Args:
             known_best: Known global optimum value. If `None`, uses the best
                 fitness found in the network. Default: `None`.
@@ -318,19 +323,16 @@ class LON:
                 - deviation: Mean absolute deviation from the global optimum
         """
         best = known_best if known_best is not None else self.best_fitness
+        if self.final_run_values is None or self.final_run_values.empty or best is None:
+            return {"success": 0.0, "deviation": 0.0}
+
         # Success: proportion of runs that reached the global optimum
-        success = (
-            self._isclose_series(self.final_run_values, best).sum() / len(self.final_run_values)
-            if self.final_run_values is not None and best is not None
-            else 0.0
+        success = self._isclose_series(self.final_run_values, best).sum() / len(
+            self.final_run_values
         )
 
         # Deviation: mean deviation from the global optimum value
-        deviation = (
-            (self.final_run_values - best).abs().mean()
-            if self.final_run_values is not None and best is not None
-            else 0.0
-        )
+        deviation = (self.final_run_values - best).abs().mean()
 
         return {"success": success, "deviation": deviation}
 
@@ -359,7 +361,8 @@ class LON:
         Convert LON to Compressed Monotonic LON (CMLON).
 
         Returns:
-            CMLON instance with contracted neutral nodes.
+            CMLON instance with contracted neutral nodes. An empty LON produces
+            an empty CMLON, retaining the source LON and its metadata.
         """
         return CMLON.from_lon(self)
 
@@ -526,12 +529,12 @@ class CMLON:
     @property
     def vertex_fitness(self) -> list[float]:
         """List of vertex fitness values."""
-        return list(self.graph.vs["Fitness"])
+        return list(self.graph.vs["Fitness"]) if self.n_vertices else []
 
     @property
     def vertex_count(self) -> list[int]:
         """List of vertex counts (contracted nodes)."""
-        return list(self.graph.vs["Count"])
+        return list(self.graph.vs["Count"]) if self.n_vertices else []
 
     def get_sinks(self) -> list[int]:
         """Get indices of sink nodes (nodes with no outgoing edges)."""
@@ -557,6 +560,8 @@ class CMLON:
     def compute_network_metrics(self, known_best: float | None = None) -> dict[str, Any]:
         """
         Compute CMLON network metrics.
+
+        Empty networks return zero for all network metrics.
 
         Args:
             known_best: Known global optimum value. If `None`, uses the best
@@ -585,7 +590,7 @@ class CMLON:
         n_global_funnels = sum(1 for f in sinks_fit if self._allclose(f, best))
 
         # Neutral: proportion of contracted nodes
-        if self.source_lon is not None:
+        if self.source_lon is not None and self.source_lon.n_vertices > 0:
             neutral = round(1.0 - self.n_vertices / self.source_lon.n_vertices, 4)
         else:
             neutral = 0.0

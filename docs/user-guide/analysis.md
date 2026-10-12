@@ -26,6 +26,21 @@ cmlon_metrics = cmlon.compute_metrics()
 print(cmlon_metrics)
 ```
 
+## Empty Networks
+
+An empty `LON()` (or a graph with all vertices removed) returns zero for every
+network metric. `to_cmlon()` returns an empty CMLON with the same metadata and
+source LON; its network metrics are also zero. Both support blank 2D and 3D plots.
+
+Performance metrics use the stored sampling results independently of the graph.
+When these results are absent or empty, or no best fitness is available,
+`success` and `deviation` are both `0.0`. These defaults indicate missing data,
+not successful optimization. A CMLON without a source LON returns an empty
+performance dictionary, as usual.
+
+`LON.from_trace_data()` still rejects an empty DataFrame with
+`ValueError("Trace is empty.")`.
+
 ## LON Metrics
 
 ### n_optima

@@ -34,7 +34,7 @@ class LONVisualizer:
     Visualizer for Local Optima Networks.
 
     Produces 2D and 3D visualizations of LON and CMLON graphs,
-    including static images and animated GIFs.
+    including static images and animated GIFs. Empty networks produce blank plots.
 
     Example:
         >>> viz = LONVisualizer()
@@ -146,7 +146,9 @@ class LONVisualizer:
         return colors
 
     def get_layout(self, graph, seed: int | None = None) -> np.ndarray:
-        """Get 2D layout coordinates for graph nodes."""
+        """Get 2D layout coordinates, with shape ``(0, 2)`` for an empty graph."""
+        if graph.vcount() == 0:
+            return np.empty((0, 2))
         if seed is not None:
             np.random.seed(seed)
             ig.set_random_number_generator(random.Random(seed))
