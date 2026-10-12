@@ -102,7 +102,10 @@ class BitstringProblem(DiscreteProblem[list[int]]):
         scan is deterministic. Stops when no improving neighbor exists.
 
         Uses `delta_evaluate()` when available for O(1) neighbor evaluation;
-        falls back to full `evaluate()` otherwise.
+        falls back to full `evaluate()` otherwise. The returned fitness is
+        always a full `evaluate()` of the returned solution, so floating-point
+        drift from accumulated deltas cannot give the same optimum different
+        fitness values on different visits.
         """
         sol = list(solution)  # copy
         current_fitness = self.evaluate(sol)
@@ -146,7 +149,7 @@ class BitstringProblem(DiscreteProblem[list[int]]):
                 current_fitness = best_delta_fitness
                 improved = True
 
-        return sol, current_fitness
+        return sol, self.evaluate(sol)
 
 
 class NumberPartitioning(BitstringProblem):
