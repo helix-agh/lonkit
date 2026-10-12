@@ -1,5 +1,4 @@
 import random
-import shutil
 from pathlib import Path
 
 import igraph as ig
@@ -404,100 +403,93 @@ class LONVisualizer:
 
         frames: list[np.ndarray] = []
 
-        try:
-            for angle in angles:
-                fig = go.Figure()
+        for angle in angles:
+            fig = go.Figure()
 
-                # Draw edges
-                if graph.ecount() > 0:
-                    for j, edge in enumerate(graph.es):
-                        src_idx = edge.source
-                        tgt_idx = edge.target
+            # Draw edges
+            if graph.ecount() > 0:
+                for j, edge in enumerate(graph.es):
+                    src_idx = edge.source
+                    tgt_idx = edge.target
 
-                        fig.add_trace(
-                            go.Scatter3d(
-                                x=[x[src_idx], x[tgt_idx]],
-                                y=[y[src_idx], y[tgt_idx]],
-                                z=[z[src_idx], z[tgt_idx]],
-                                mode="lines",
-                                line=dict(color=COLORS["edge"], width=edge_widths[j] * 2),
-                                hoverinfo="none",
-                                showlegend=False,
-                            )
+                    fig.add_trace(
+                        go.Scatter3d(
+                            x=[x[src_idx], x[tgt_idx]],
+                            y=[y[src_idx], y[tgt_idx]],
+                            z=[z[src_idx], z[tgt_idx]],
+                            mode="lines",
+                            line=dict(color=COLORS["edge"], width=edge_widths[j] * 2),
+                            hoverinfo="none",
+                            showlegend=False,
                         )
-
-                # Draw nodes
-                fig.add_trace(
-                    go.Scatter3d(
-                        x=x,
-                        y=y,
-                        z=z,
-                        mode="markers",
-                        marker=dict(
-                            size=np.array(node_sizes) * 2,
-                            color=node_colors,
-                            line=dict(color="black", width=0.5),
-                        ),
-                        showlegend=False,
                     )
-                )
 
-                # Rotating camera
-                cam_dist = 2.0
-                eye_x = cam_dist * np.sin(angle)
-                eye_y = -cam_dist * np.cos(angle)
-                eye_z = 0.5
-
-                fig.update_layout(
-                    scene=dict(
-                        xaxis=dict(
-                            showgrid=False,
-                            showticklabels=False,
-                            title="",
-                            showbackground=False,
-                        ),
-                        yaxis=dict(
-                            showgrid=False,
-                            showticklabels=False,
-                            title="",
-                            showbackground=False,
-                        ),
-                        zaxis=dict(
-                            showgrid=False,
-                            title="",
-                            showbackground=False,
-                        ),
-                        camera=dict(
-                            eye=dict(x=eye_x, y=eye_y, z=eye_z),
-                            up=dict(x=0, y=0, z=1),
-                        ),
-                        aspectmode="manual",
-                        aspectratio=dict(x=1, y=1, z=0.8),
+            # Draw nodes
+            fig.add_trace(
+                go.Scatter3d(
+                    x=x,
+                    y=y,
+                    z=z,
+                    mode="markers",
+                    marker=dict(
+                        size=np.array(node_sizes) * 2,
+                        color=node_colors,
+                        line=dict(color="black", width=0.5),
                     ),
-                    width=width,
-                    height=height,
-                    margin=dict(l=0, r=0, t=0, b=0),
-                    paper_bgcolor=BACKGROUND_COLOR,
-                    plot_bgcolor=BACKGROUND_COLOR,
+                    showlegend=False,
                 )
-
-                # Render directly to memory (avoids temp files and stray alpha blending)
-                png_bytes = fig.to_image(format="png", width=width, height=height, scale=1)
-                frames.append(imageio.v3.imread(png_bytes, extension=".png"))
-
-            imageio.mimsave(
-                str(output_path),
-                frames,
-                fps=fps,
-                loop=loop,
-                disposal=disposal,
             )
 
-        finally:
-            # Backwards-compat: older versions created temp frames on disk.
-            temp_dir = Path(output_path).parent / ".temp_frames"
-            if temp_dir.exists():
-                shutil.rmtree(temp_dir)
+            # Rotating camera
+            cam_dist = 2.0
+            eye_x = cam_dist * np.sin(angle)
+            eye_y = -cam_dist * np.cos(angle)
+            eye_z = 0.5
+
+            fig.update_layout(
+                scene=dict(
+                    xaxis=dict(
+                        showgrid=False,
+                        showticklabels=False,
+                        title="",
+                        showbackground=False,
+                    ),
+                    yaxis=dict(
+                        showgrid=False,
+                        showticklabels=False,
+                        title="",
+                        showbackground=False,
+                    ),
+                    zaxis=dict(
+                        showgrid=False,
+                        title="",
+                        showbackground=False,
+                    ),
+                    camera=dict(
+                        eye=dict(x=eye_x, y=eye_y, z=eye_z),
+                        up=dict(x=0, y=0, z=1),
+                    ),
+                    aspectmode="manual",
+                    aspectratio=dict(x=1, y=1, z=0.8),
+                ),
+                width=width,
+                height=height,
+                margin=dict(l=0, r=0, t=0, b=0),
+                paper_bgcolor=BACKGROUND_COLOR,
+                plot_bgcolor=BACKGROUND_COLOR,
+            )
+
+            # Render directly to memory (avoids temp files and stray alpha blending)
+            png_bytes = fig.to_image(format="png", width=width, height=height, scale=1)
+            frames.append(imageio.v3.imread(png_bytes, extension=".png"))
+
+        imageio.mimsave(
+            str(output_path),
+            frames,
+            fps=fps,
+            loop=loop,
+            disposal=disposal,
+        )
 
     def visualize_all(
         self,
