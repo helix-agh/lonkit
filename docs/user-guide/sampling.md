@@ -168,6 +168,31 @@ config = BasinHoppingSamplerConfig(
 )
 ```
 
+### Failed Local Searches
+
+A local search fails when `minimize` raises `ValueError` or returns a non-finite
+fitness (`nan` or `inf`). Such a result never enters the LON:
+
+- if the initial local search of a run fails, the whole run fails and is left out
+  of the trace and the performance metrics;
+- if a local search after a perturbation fails, it is rejected and counts as a
+  non-improving iteration.
+
+Results with `success=False` but a finite fitness are used as local optima. On
+non-smooth functions such as Ackley, L-BFGS-B often reports `ABNORMAL` at genuine
+optima. The minimizer's `success`, `status` and `message` are kept in
+`raw_records`, so such results can be filtered out afterwards.
+
+`sample()` warns if any local search failed. `result.run_summary` has one row per run:
+
+```python
+result = sampler.sample(func, domain)
+print(result.run_summary)
+#    run     status  n_iterations  n_failed_minimizations  nfev
+# 0    1  completed           250                       0  4123
+# 1    2     failed             0                       1    12
+```
+
 ## Discrete Sampling with ILS
 
 Independent ILS runs can use multiple processes via `n_jobs`:
@@ -328,6 +353,10 @@ for record in result.raw_records[:5]:
     print(f"  Current: {record['current_f']:.4f}")
     print(f"  New: {record['new_f']:.4f}")
     print(f"  Accepted: {record['accepted']}")
+    print(f"  Minimizer converged: {record['success']}")
+
+# one row per run: run, status, n_iterations, n_failed_minimizations, nfev
+print(result.run_summary)
 ```
 
 ## Loading External Traces
