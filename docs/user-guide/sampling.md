@@ -344,7 +344,22 @@ for record in result.raw_records[:5]:
 
 Each row is one **accepted** transition between local optima. Within a run, rows must be in chronological order: the fitness in the last row of a run is taken as the run's final result. The same local optimum must always get the same identifier.
 
-A run that never accepts a move after its initial local search should still get one row, from its local optimum to itself (`node1 == node2`). Otherwise its optimum is missing from the LON and the run is left out of `success` and `deviation`. Self-loops are dropped from the graph, so such rows add a vertex but no edges. The built-in samplers record these runs this way.
+A run that never accepts a move after its initial local search should still get one row, from its local optimum to itself (`node1 == node2`). Otherwise its optimum is missing from the LON and the run is left out of `success` and `deviation`. Self-loops are dropped from the graph, so such rows add a vertex but no edges. The built-in samplers record these runs this way by default.
+
+Both `BasinHoppingSamplerConfig` and `ILSSamplerConfig` accept
+`preserve_runs_without_transitions=False` to restore the earlier behavior:
+
+```python
+config = BasinHoppingSamplerConfig(preserve_runs_without_transitions=False)
+```
+
+This can be useful when reproducing earlier results or analyzing a network built
+only from accepted transitions. Runs without accepted moves are then omitted
+from both the trace and the performance metrics: `success` and `deviation`
+describe only the retained runs, not all completed runs. The option does not
+remove all isolated vertices: accepted moves to the same node still produce
+trace rows, whose self-loops are removed when building the graph. Search behavior
+and accepted transitions are unchanged.
 
 ```python
 import pandas as pd

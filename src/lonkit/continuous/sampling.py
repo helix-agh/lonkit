@@ -50,6 +50,9 @@ class BasinHoppingSamplerConfig:
         - ``-N`` uses maximum of ``max(1, cpu_count - N + 1)`` processes;
         - ``None`` is treated as ``1``.
         Reproducibility is guaranteed across different ``n_jobs`` values when ``seed`` is set. Default: ``1``.
+        preserve_runs_without_transitions: Keep runs with no accepted moves as
+            self-loop trace rows. If False, omit them from the trace, LON, and
+            performance metrics, matching the earlier behavior. Default: True.
     """
 
     n_runs: int = 100
@@ -64,6 +67,7 @@ class BasinHoppingSamplerConfig:
     minimizer_options: dict | None = None
     seed: int | None = None
     n_jobs: int | None = 1
+    preserve_runs_without_transitions: bool = True
 
     def __post_init__(self) -> None:
         if self.n_iter_no_change is not None and self.n_iter_no_change <= 0:
@@ -87,6 +91,9 @@ class BasinHoppingResult:
         raw_records: List of dicts with detailed iteration data, including all
             perturbation attempts (both accepted and rejected). Each dict has keys
             `run`, `iteration`, `current_x`, `current_f`, `new_x`, `new_f`, and `accepted`.
+            If all perturbations fail and `preserve_runs_without_transitions` is enabled,
+            a rejected self-transition with `iteration=-1` preserves the finite
+            result of the initial minimization.
         nfev: Total number of objective function evaluations across all runs.
     """
 
@@ -284,6 +291,21 @@ class BasinHoppingSampler:
                 current_f = new_f
 
             iter_index += 1
+
+        # No perturbation produced a record: preserve the finite initial result
+        # for _construct_trace_data without inventing an accepted move.
+        if self.config.preserve_runs_without_transitions and not records and np.isfinite(current_f):
+            records.append(
+                {
+                    "run": run,
+                    "iteration": -1,
+                    "current_x": current_x.copy(),
+                    "current_f": current_f,
+                    "new_x": current_x.copy(),
+                    "new_f": current_f,
+                    "accepted": False,
+                }
+            )
 
         return records, nfev
 
@@ -487,23 +509,24 @@ class BasinHoppingSampler:
                 }
             )
 
-        # A run with no accepted moves keeps its initial minimum as a self-loop row
-        # (dropped from the graph by LON.from_trace_data()), so it still counts
-        # towards success/deviation. Non-finite minima are skipped.
-        runs_in_trace = {row["run"] for row in trace_records}
-        first_records: dict[int, dict] = {}
-        for rec in raw_records:
-            first_records.setdefault(rec["run"], rec)
-        for run, rec in first_records.items():
-            if run in runs_in_trace or not np.isfinite(rec["current_f"]):
-                continue
-            node = self._hash_solution(
-                self._round_value(rec["current_x"], self.config.coordinate_precision)
-            )
-            fit = self._round_value(rec["current_f"], self.config.fitness_precision)
-            trace_records.append(
-                {"run": run, "fit1": fit, "node1": node, "fit2": fit, "node2": node}
-            )
+        if self.config.preserve_runs_without_transitions:
+            # A run with no accepted moves keeps its initial minimum as a self-loop row
+            # (dropped from the graph by LON.from_trace_data()), so it still counts
+            # towards success/deviation. Non-finite minima are skipped.
+            runs_in_trace = {row["run"] for row in trace_records}
+            first_records: dict[int, dict] = {}
+            for rec in raw_records:
+                first_records.setdefault(rec["run"], rec)
+            for run, rec in first_records.items():
+                if run in runs_in_trace or not np.isfinite(rec["current_f"]):
+                    continue
+                node = self._hash_solution(
+                    self._round_value(rec["current_x"], self.config.coordinate_precision)
+                )
+                fit = self._round_value(rec["current_f"], self.config.fitness_precision)
+                trace_records.append(
+                    {"run": run, "fit1": fit, "node1": node, "fit2": fit, "node2": node}
+                )
 
         trace_df = pd.DataFrame(trace_records, columns=["run", "fit1", "node1", "fit2", "node2"])
         trace_df = trace_df.sort_values(by=["run"], kind="mergesort").reset_index(drop=True)

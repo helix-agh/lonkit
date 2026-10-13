@@ -1,5 +1,8 @@
+from unittest.mock import patch
+
 import numpy as np
 import pytest
+from scipy.optimize import OptimizeResult
 
 from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig
 from tests.conftest import DOMAIN_2D, SEED, sphere
@@ -38,11 +41,90 @@ class TestHashSolution:
 
 
 class TestRunsWithoutAcceptedTransitions:
-    def test_run_is_recorded_as_self_loop(self) -> None:
+    @pytest.mark.parametrize("preserve", [True, False])
+    def test_mixed_runs_keep_accepted_transitions(self, preserve: bool) -> None:
+        sampler = BasinHoppingSampler(
+            BasinHoppingSamplerConfig(
+                n_runs=2, max_iter=1, seed=SEED, preserve_runs_without_transitions=preserve
+            )
+        )
+        # Run 1 rejects its move; run 2 accepts an improvement.
+        results = [
+            OptimizeResult(x=np.full(2, x), fun=f, nfev=1)
+            for x, f in [(0.0, 0.0), (1.0, 2.0), (2.0, 8.0), (1.0, 2.0)]
+        ]
+        with patch("lonkit.continuous.sampling.minimize", side_effect=results):
+            result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.array([[0, 0], [2, 2]]))
+
+        assert [r["accepted"] for r in result.raw_records] == [False, True]
+        assert result.trace_df["run"].tolist() == ([1, 2] if preserve else [2])
+        lon = sampler.sample_to_lon(result)
+        assert lon.n_vertices == (3 if preserve else 2)
+        assert lon.n_edges == 1
+        edge = lon.graph.es[0]
+        assert lon.vertex_names[edge.source] == "2.00000_2.00000"
+        assert lon.vertex_names[edge.target] == "1.00000_1.00000"
+        assert edge["Count"] == 1
+        assert lon.compute_performance_metrics(known_best=0.0) == {
+            "success": 0.5 if preserve else 0.0,
+            "deviation": 1.0 if preserve else 2.0,
+        }
+
+    @pytest.mark.parametrize("preserve", [True, False])
+    @pytest.mark.parametrize("initial_fitness", [0.0, float("nan")])
+    def test_all_perturbations_fail(self, initial_fitness: float, preserve: bool) -> None:
+        sampler = BasinHoppingSampler(
+            BasinHoppingSamplerConfig(
+                n_runs=1, max_iter=2, seed=SEED, preserve_runs_without_transitions=preserve
+            )
+        )
+        initial_result = OptimizeResult(x=np.zeros(2), fun=initial_fitness, nfev=1)
+        with (
+            patch(
+                "lonkit.continuous.sampling.minimize",
+                side_effect=[initial_result, ValueError("failed"), ValueError("failed")],
+            ),
+            pytest.warns(UserWarning, match="minimize after perturbation failed") as warnings,
+        ):
+            result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.zeros((1, 2)))
+
+        assert len(warnings) == 2
+        assert result.nfev == 1
+        lon = sampler.sample_to_lon(result)
+        if not preserve or not np.isfinite(initial_fitness):
+            assert result.raw_records == []
+            assert result.trace_df.empty
+            assert lon.n_vertices == 0
+            return
+
+        assert len(result.raw_records) == 1
+        assert result.raw_records[0]["iteration"] == -1
+        assert not result.raw_records[0]["accepted"]
+        assert result.trace_df["run"].tolist() == [1]
+        assert (result.trace_df["node1"] == result.trace_df["node2"]).all()
+        assert lon.n_vertices == 1
+        assert lon.n_edges == 0
+        assert lon.final_run_values is not None
+        assert lon.final_run_values.to_dict() == {1: 0.0}
+        assert lon.compute_performance_metrics(known_best=0.0) == {"success": 1.0, "deviation": 0.0}
+
+    @pytest.mark.parametrize("preserve", [True, False])
+    def test_run_is_recorded_as_self_loop(self, preserve: bool) -> None:
         """A run started at the optimum keeps it, although no move is accepted (issue #39)."""
-        sampler = BasinHoppingSampler(BasinHoppingSamplerConfig(n_runs=3, max_iter=5, seed=SEED))
+        sampler = BasinHoppingSampler(
+            BasinHoppingSamplerConfig(
+                n_runs=3, max_iter=5, seed=SEED, preserve_runs_without_transitions=preserve
+            )
+        )
         result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.zeros((3, 2)))
         assert not any(r["accepted"] for r in result.raw_records)
+        if not preserve:
+            assert len(result.raw_records) == 15
+            assert result.trace_df.empty
+            lon = sampler.sample_to_lon(result)
+            assert lon.n_vertices == 0
+            assert lon.final_run_values is None
+            return
         assert result.trace_df["run"].tolist() == [1, 2, 3]
         assert (result.trace_df["node1"] == result.trace_df["node2"]).all()
 

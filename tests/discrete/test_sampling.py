@@ -1,4 +1,8 @@
+from dataclasses import replace
+
 import numpy as np
+import pandas as pd
+import pytest
 
 from lonkit import LON, ILSSampler, ILSSamplerConfig, NumberPartitioning, OneMax
 
@@ -17,10 +21,26 @@ class NaNForLeadingZero(OneMax):
 
 
 class TestRunsWithoutAcceptedTransitions:
-    def test_run_is_recorded_as_self_loop(self) -> None:
+    @pytest.mark.parametrize("preserve", [True, False])
+    def test_run_is_recorded_as_self_loop(self, preserve: bool) -> None:
         """Runs that find the optimum in the initial local search keep it (issue #39)."""
-        sampler = ILSSampler(ILSSamplerConfig(n_runs=3, max_iter=2, accept_equal=False, seed=42))
+        sampler = ILSSampler(
+            ILSSamplerConfig(
+                n_runs=3,
+                max_iter=2,
+                accept_equal=False,
+                seed=42,
+                preserve_runs_without_transitions=preserve,
+            )
+        )
         result = sampler.sample(OneMax(4))
+        if not preserve:
+            assert len(result.raw_records) == 6
+            assert result.trace_df.empty
+            lon = sampler.sample_to_lon(result)
+            assert lon.n_vertices == 0
+            assert lon.final_run_values is None
+            return
         assert result.trace_df.to_dict("records") == [
             {"run": run, "fit1": 4, "node1": "1111", "fit2": 4, "node2": "1111"}
             for run in (1, 2, 3)
@@ -48,6 +68,19 @@ class TestRunsWithoutAcceptedTransitions:
         assert edges_with_counts(lon) == edges_with_counts(baseline)
         assert lon.final_run_values is not None
         assert len(lon.final_run_values) == 20
+
+        legacy_sampler = ILSSampler(
+            replace(sampler.config, preserve_runs_without_transitions=False)
+        )
+        legacy = legacy_sampler.sample(problem)
+        assert legacy.raw_records == result.raw_records
+        pd.testing.assert_frame_equal(
+            legacy.trace_df, trace[trace["run"].isin(moving_runs)].reset_index(drop=True)
+        )
+        legacy_lon = legacy_sampler.sample_to_lon(legacy)
+        assert edges_with_counts(legacy_lon) == edges_with_counts(lon)
+        assert legacy_lon.final_run_values is not None
+        assert set(legacy_lon.final_run_values.index) == moving_runs
 
     def test_non_finite_initial_fitness_is_skipped(self) -> None:
         sampler = ILSSampler(ILSSamplerConfig(n_runs=10, max_iter=2, accept_equal=False, seed=0))
