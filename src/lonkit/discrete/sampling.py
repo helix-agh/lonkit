@@ -37,6 +37,9 @@ class ILSSamplerConfig:
             without workers; -1 uses all CPUs; negative values reserve CPUs
             as in joblib. None uses the joblib context setting, or 1 without
             a context. 0 is invalid. Processes are preferred. Default: 1.
+        preserve_runs_without_transitions: Keep runs with no accepted moves as
+            self-loop trace rows. If False, omit them from the trace, LON, and
+            performance metrics, matching the earlier behavior. Default: True.
     """
 
     n_runs: int = 100
@@ -45,6 +48,7 @@ class ILSSamplerConfig:
     accept_equal: bool = True
     seed: int | None = None
     n_jobs: int | None = 1
+    preserve_runs_without_transitions: bool = True
 
     def __post_init__(self) -> None:
         if self.n_iter_no_change is not None and self.n_iter_no_change <= 0:
@@ -245,7 +249,7 @@ class ILSSampler:
 
         Returns:
             DataFrame with columns `[run, fit1, node1, fit2, node2]` representing
-            accepted transitions only.
+            accepted transitions.
         """
         trace_records = []
 
@@ -263,10 +267,29 @@ class ILSSampler:
                 }
             )
 
-        return pd.DataFrame(
-            trace_records,
-            columns=["run", "fit1", "node1", "fit2", "node2"],
-        )
+        if self.config.preserve_runs_without_transitions:
+            # A run with no accepted moves keeps its initial optimum as a self-loop row
+            # (dropped from the graph by LON.from_trace_data()), so it still counts
+            # towards success/deviation. Non-finite fitness is skipped.
+            runs_in_trace = {row["run"] for row in trace_records}
+            first_records: dict[int, dict] = {}
+            for rec in raw_records:
+                first_records.setdefault(rec["run"], rec)
+            for run, rec in first_records.items():
+                if run not in runs_in_trace and np.isfinite(rec["current_fitness"]):
+                    trace_records.append(
+                        {
+                            "run": run,
+                            "fit1": rec["current_fitness"],
+                            "node1": rec["current_id"],
+                            "fit2": rec["current_fitness"],
+                            "node2": rec["current_id"],
+                        }
+                    )
+
+        trace_df = pd.DataFrame(trace_records, columns=["run", "fit1", "node1", "fit2", "node2"])
+        trace_df = trace_df.sort_values(by=["run"], kind="mergesort").reset_index(drop=True)
+        return trace_df
 
     def sample_to_lon(
         self,
