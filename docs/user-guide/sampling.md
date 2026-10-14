@@ -180,18 +180,10 @@ fitness (`nan` or `inf`). Such a result never enters the LON:
 
 Results with `success=False` but a finite fitness are used as local optima. On
 non-smooth functions such as Ackley, L-BFGS-B often reports `ABNORMAL` at genuine
-optima. The minimizer's `success`, `status` and `message` are kept in
-`raw_records`, so such results can be filtered out afterwards.
+optima.
 
-`sample()` warns if any local search failed. `result.run_summary` has one row per run:
-
-```python
-result = sampler.sample(func, domain)
-print(result.run_summary)
-#    run     status  n_iterations  n_failed_minimizations  nfev
-# 0    1  completed           250                       0  4123
-# 1    2     failed             0                       1    12
-```
+Each failed local search emits a warning with the run and iteration (for
+perturbations), the starting point, and the reason for failure.
 
 ## Discrete Sampling with ILS
 
@@ -353,10 +345,6 @@ for record in result.raw_records[:5]:
     print(f"  Current: {record['current_f']:.4f}")
     print(f"  New: {record['new_f']:.4f}")
     print(f"  Accepted: {record['accepted']}")
-    print(f"  Minimizer converged: {record['success']}")
-
-# one row per run: run, status, n_iterations, n_failed_minimizations, nfev
-print(result.run_summary)
 ```
 
 ## Loading External Traces

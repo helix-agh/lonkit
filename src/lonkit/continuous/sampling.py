@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field, replace
-from typing import Any, Literal
+from dataclasses import dataclass, replace
+from typing import Literal
 
 import joblib
 import numpy as np
@@ -12,7 +12,6 @@ from tqdm import tqdm
 from lonkit.lon import LON, LONConfig
 
 StepMode = Literal["percentage", "fixed"]
-RUN_SUMMARY_COLUMNS = ["run", "status", "n_iterations", "n_failed_minimizations", "nfev"]
 
 
 @dataclass
@@ -56,10 +55,9 @@ class BasinHoppingSamplerConfig:
             performance metrics, matching the earlier behavior. Default: True.
 
     A local search fails if ``minimize`` raises ``ValueError`` or returns a non-finite
-    ``fun``. A failed initial local search fails the whole run; a failed search after a
-    perturbation counts as a non-improving iteration. Results with ``success=False`` and
-    a finite ``fun`` are used as local optima: on non-smooth functions, minimizers often
-    report e.g. ``ABNORMAL`` at genuine optima. Their status is kept in ``raw_records``.
+    ``fun``. A failed initial search skips the run; a failed perturbation is rejected
+    and counts as a non-improving iteration. Failures emit warnings. Results with
+    ``success=False`` and finite fitness are still used as local optima.
     """
 
     n_runs: int = 100
@@ -97,23 +95,16 @@ class BasinHoppingResult:
             transitions between local optima.
         raw_records: List of dicts with detailed iteration data, including all
             perturbation attempts (both accepted and rejected). Each dict has keys
-            `run`, `iteration`, `current_x`, `current_f`, `new_x`, `new_f`, `accepted`,
-            and the `success`, `status` and `message` reported by the minimizer for `new_x`.
-            Failed results with a non-finite `new_f` are recorded with `accepted=False`. If all perturbations fail and
-            `preserve_runs_without_transitions` is enabled, a rejected self-transition
-            with `iteration=-1` preserves the result of the initial minimization.
+            `run`, `iteration`, `current_x`, `current_f`, `new_x`, `new_f`, and `accepted`.
+            If all perturbations fail and `preserve_runs_without_transitions` is enabled,
+            a rejected self-transition with `iteration=-1` preserves the finite
+            result of the initial minimization.
         nfev: Total number of objective function evaluations across all runs.
-        run_summary: DataFrame with one row per run and columns `run`, `status`
-            (`"completed"`, or `"failed"` if the initial local search failed),
-            `n_iterations`, `n_failed_minimizations` and `nfev`.
     """
 
     trace_df: pd.DataFrame
     raw_records: list[dict]
     nfev: int
-    run_summary: pd.DataFrame = field(
-        default_factory=lambda: pd.DataFrame(columns=RUN_SUMMARY_COLUMNS)
-    )
 
 
 class BasinHoppingSampler:
@@ -224,14 +215,6 @@ class BasinHoppingSampler:
             return res, f"non-finite fitness {res.fun}"
         return res, None
 
-    @staticmethod
-    def _minimizer_status(res: OptimizeResult) -> dict:
-        return {
-            "success": bool(res.get("success", True)),
-            "status": res.get("status"),
-            "message": str(res.get("message", "")),
-        }
-
     def _single_bh_run(
         self,
         run: int,
@@ -240,7 +223,7 @@ class BasinHoppingSampler:
         p: np.ndarray,
         bounds_array: np.ndarray | None,
         rng: np.random.Generator,
-    ) -> tuple[list[dict], int, dict]:
+    ) -> tuple[list[dict], int]:
         """
         Execute a single Basin-Hopping run.
 
@@ -253,18 +236,9 @@ class BasinHoppingSampler:
             rng: Random number generator for perturbations in this run.
 
         Returns:
-            Tuple of (records, nfev, summary) for this run, where summary is a row of
-            ``BasinHoppingResult.run_summary``.
+            Tuple of (records, nfev) for this run.
         """
         nfev = 0
-        summary: dict[str, Any] = {
-            "run": run,
-            "status": "completed",
-            "n_iterations": 0,
-            "n_failed_minimizations": 0,
-            "nfev": 0,
-        }
-
         res, failure = self._local_search(func, initial_point, bounds_array)
         if res is not None:
             nfev += res.nfev
@@ -274,13 +248,11 @@ class BasinHoppingSampler:
                 f"Starting point: {initial_point}. Skipping run.",
                 stacklevel=3,
             )
-            summary.update(status="failed", n_failed_minimizations=1, nfev=nfev)
-            return [], nfev, summary
+            return [], nfev
         assert res is not None
 
         current_x = res.x
         current_f = res.fun
-        current_status = self._minimizer_status(res)
 
         records: list[dict] = []
         iters_without_improvement = 0
@@ -298,17 +270,13 @@ class BasinHoppingSampler:
             x_perturbed = self._perturbation(current_x, p, rng, bounds_array)
             res, failure = self._local_search(func, x_perturbed, bounds_array)
             if failure is not None:
-                summary["n_failed_minimizations"] += 1
-            if res is None:
-                # L-BFGS-B can produce internal iterates that slightly
-                # violate bounds, causing approx_derivative to fail.
-                # Skip this perturbation and try the next one.
                 warnings.warn(
                     f"Run {run}, iteration {iter_index}: minimize after perturbation "
                     f"failed ({failure}). "
                     f"Perturbed point: {x_perturbed}. Skipping perturbation.",
                     stacklevel=3,
                 )
+            if res is None:
                 iters_without_improvement += 1
                 iter_index += 1
                 continue
@@ -327,7 +295,6 @@ class BasinHoppingSampler:
                     "new_x": new_x.copy(),
                     "new_f": new_f,
                     "accepted": accepted,
-                    **self._minimizer_status(res),
                 }
             )
 
@@ -342,7 +309,6 @@ class BasinHoppingSampler:
             if accepted:
                 current_x = new_x.copy()
                 current_f = new_f
-                current_status = self._minimizer_status(res)
 
             iter_index += 1
 
@@ -358,12 +324,10 @@ class BasinHoppingSampler:
                     "new_x": current_x.copy(),
                     "new_f": current_f,
                     "accepted": False,
-                    **current_status,
                 }
             )
 
-        summary.update(n_iterations=iter_index, nfev=nfev)
-        return records, nfev, summary
+        return records, nfev
 
     def _sequential_bh(
         self,
@@ -374,7 +338,7 @@ class BasinHoppingSampler:
         run_seeds: list[np.random.SeedSequence],
         progress_callback: Callable[[int, int], None] | None = None,
         verbose: bool = False,
-    ) -> tuple[list[dict], int, list[dict]]:
+    ) -> tuple[list[dict], int]:
         """
         Executes set of ``_single_bh_run`` calls in sequence, without using ``joblib``.
 
@@ -382,22 +346,20 @@ class BasinHoppingSampler:
         """
         raw_records: list[dict] = []
         nfev_total = 0
-        summaries: list[dict] = []
 
         runs = range(1, self.config.n_runs + 1)
         run_iter = tqdm(runs, total=self.config.n_runs) if verbose else runs
         for run in run_iter:
             rng = np.random.default_rng(run_seeds[run - 1])
-            records, nfev, summary = self._single_bh_run(
+            records, nfev = self._single_bh_run(
                 run, func, initial_points[run - 1], p, bounds_array, rng
             )
             if progress_callback:
                 progress_callback(run, self.config.n_runs)
             raw_records.extend(records)
             nfev_total += nfev
-            summaries.append(summary)
 
-        return raw_records, nfev_total, summaries
+        return raw_records, nfev_total
 
     def _parallel_bh(
         self,
@@ -409,7 +371,7 @@ class BasinHoppingSampler:
         effective_n_jobs: int,
         progress_callback: Callable[[int, int], None] | None = None,
         verbose: bool = False,
-    ) -> tuple[list[dict], int, list[dict]]:
+    ) -> tuple[list[dict], int]:
         """
         Executes set of ``_single_bh_run`` calls in parallel using ``joblib``.
 
@@ -443,18 +405,16 @@ class BasinHoppingSampler:
 
         raw_records: list[dict] = []
         nfev_total = 0
-        summaries: list[dict] = []
         result_iter = (
             tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
         )
-        for completed_runs, (_, records, nfev, summary) in enumerate(result_iter, 1):
+        for completed_runs, (_, records, nfev) in enumerate(result_iter, 1):
             if progress_callback:
                 progress_callback(completed_runs, self.config.n_runs)
             raw_records.extend(records)
             nfev_total += nfev
-            summaries.append(summary)
 
-        return raw_records, nfev_total, summaries
+        return raw_records, nfev_total
 
     def _basin_hopping_sampling(
         self,
@@ -463,7 +423,7 @@ class BasinHoppingSampler:
         initial_points: np.ndarray,
         progress_callback: Callable[[int, int], None] | None = None,
         verbose: bool = False,
-    ) -> tuple[list[dict], int, list[dict]]:
+    ) -> tuple[list[dict], int]:
         """
         Run Basin-Hopping sampling to generate LON data.
 
@@ -482,11 +442,10 @@ class BasinHoppingSampler:
                 process, regardless of ``n_jobs``.
 
         Returns:
-            Tuple of (raw_records, nfev_total, summaries) where raw_records is a list of
+            Tuple of (raw_records, nfev_total) where raw_records is a list of
             raw sampling records (one per perturbation step, each a dict with keys:
-            run, iteration, current_x, current_f, new_x, new_f, accepted, success,
-            status, message), nfev_total is the total number of function evaluations
-            and summaries holds one ``run_summary`` row per run, in completion order.
+            run, iteration, current_x, current_f, new_x, new_f, accepted) and
+            nfev_total is the total number of function evaluations.
         """
         n_var = len(domain)
         domain_array = np.array(domain)
@@ -573,13 +532,13 @@ class BasinHoppingSampler:
         if self.config.preserve_runs_without_transitions:
             # A run with no accepted moves keeps its initial minimum as a self-loop row
             # (dropped from the graph by LON.from_trace_data()), so it still counts
-            # towards success/deviation. Failed runs have no records.
+            # towards success/deviation. Non-finite minima are skipped.
             runs_in_trace = {row["run"] for row in trace_records}
             first_records: dict[int, dict] = {}
             for rec in raw_records:
                 first_records.setdefault(rec["run"], rec)
             for run, rec in first_records.items():
-                if run in runs_in_trace:
+                if run in runs_in_trace or not np.isfinite(rec["current_f"]):
                     continue
                 node = self._hash_solution(
                     self._round_value(rec["current_x"], self.config.coordinate_precision)
@@ -658,31 +617,14 @@ class BasinHoppingSampler:
         resolved_points = self._resolve_initial_points(initial_points, domain)
 
         # Collect all raw sampling data
-        raw_records, nfev_total, summaries = self._basin_hopping_sampling(
+        raw_records, nfev_total = self._basin_hopping_sampling(
             func, domain, resolved_points, progress_callback, verbose
         )
 
         # Construct trace data from accepted transitions
         trace_df = self._construct_trace_data(raw_records)
 
-        run_summary = pd.DataFrame(summaries, columns=RUN_SUMMARY_COLUMNS)
-        run_summary = run_summary.sort_values(by=["run"]).reset_index(drop=True)
-        n_failed_runs = int((run_summary["status"] == "failed").sum())
-        n_failed_minimizations = int(run_summary["n_failed_minimizations"].sum())
-        if n_failed_minimizations:
-            warnings.warn(
-                f"{n_failed_minimizations} local search(es) failed (ValueError or non-finite fitness); "
-                f"{n_failed_runs} of {self.config.n_runs} run(s) failed. "
-                "See BasinHoppingResult.run_summary.",
-                stacklevel=2,
-            )
-
-        return BasinHoppingResult(
-            trace_df=trace_df,
-            raw_records=raw_records,
-            nfev=nfev_total,
-            run_summary=run_summary,
-        )
+        return BasinHoppingResult(trace_df=trace_df, raw_records=raw_records, nfev=nfev_total)
 
     def sample_to_lon(
         self,
@@ -728,7 +670,7 @@ def _run_single_bh_in_worker(
     bounds_array: np.ndarray | None,
     config: BasinHoppingSamplerConfig,
     seed: np.random.SeedSequence,
-) -> tuple[int, list[dict], int, dict]:
+) -> tuple[int, list[dict], int]:
     """
     Module-level worker for a single Basin-Hopping run.
 
@@ -747,12 +689,12 @@ def _run_single_bh_in_worker(
         seed: ``SeedSequence`` child spawned for this run.
 
     Returns:
-        Tuple of (run, records, nfev, summary) for this run.
+        Tuple of (run, records, nfev) for this run.
     """
     sampler = BasinHoppingSampler(config)
     rng = np.random.default_rng(seed)
-    records, nfev, summary = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
-    return run, records, nfev, summary
+    records, nfev = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
+    return run, records, nfev
 
 
 def compute_lon(
