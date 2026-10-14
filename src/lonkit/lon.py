@@ -623,7 +623,7 @@ class CMLON:
         else:
             sink_strength = 0.0
 
-        gfunnel = self._compute_global_funnel_proportion()
+        gfunnel = self._compute_global_funnel_proportion(igs)
 
         return {
             "n_optima": n_optima,
@@ -636,9 +636,8 @@ class CMLON:
             "global_funnel_proportion": gfunnel,
         }
 
-    def _compute_global_funnel_proportion(self) -> float:
-        """Compute proportion of nodes that can reach a global optimum."""
-        igs = self.get_global_sinks()
+    def _compute_global_funnel_proportion(self, igs: list[int]) -> float:
+        """Compute proportion of nodes that can reach any of the supplied global sinks."""
         if not igs:
             return 0.0
 
