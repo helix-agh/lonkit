@@ -148,10 +148,13 @@ class LONVisualizer:
         """Get 2D layout coordinates, with shape ``(0, 2)`` for an empty graph."""
         if graph.vcount() == 0:
             return np.empty((0, 2))
-        if seed is not None:
-            np.random.seed(seed)
-            ig.set_random_number_generator(random.Random(seed))
-        layout = graph.layout_auto()
+        if seed is None:
+            return np.array(graph.layout_auto().coords)
+        ig.set_random_number_generator(random.Random(seed))
+        try:
+            layout = graph.layout_auto()
+        finally:
+            ig.set_random_number_generator(random)
         return np.array(layout.coords)
 
     def plot_2d(
