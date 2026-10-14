@@ -6,7 +6,7 @@ from typing import Literal
 import joblib
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import OptimizeResult, minimize
 from tqdm import tqdm
 
 from lonkit.lon import LON, LONConfig
@@ -53,6 +53,11 @@ class BasinHoppingSamplerConfig:
         preserve_runs_without_transitions: Keep runs with no accepted moves as
             self-loop trace rows. If False, omit them from the trace, LON, and
             performance metrics, matching the earlier behavior. Default: True.
+
+    A local search fails if ``minimize`` raises ``ValueError`` or returns a non-finite
+    ``fun``. A failed initial search skips the run; a failed perturbation is rejected
+    and counts as a non-improving iteration. Failures emit warnings. Results with
+    ``success=False`` and finite fitness are still used as local optima.
     """
 
     n_runs: int = 100
@@ -182,6 +187,34 @@ class BasinHoppingSampler:
 
         return hash_str
 
+    def _local_search(
+        self,
+        func: Callable[[np.ndarray], float],
+        x0: np.ndarray,
+        bounds_array: np.ndarray | None,
+    ) -> tuple[OptimizeResult | None, str | None]:
+        """
+        Run ``minimize`` from ``x0``.
+
+        Returns:
+            Tuple of (result, failure). ``result`` is ``None`` if ``minimize`` raised
+            ``ValueError``. ``failure`` is ``None`` if the result can be used as a local
+            optimum, otherwise a description of why it cannot.
+        """
+        try:
+            res = minimize(
+                func,
+                x0,
+                method=self.config.minimizer_method,
+                options=self.config.minimizer_options,
+                bounds=bounds_array if self.config.bounded else None,
+            )
+        except ValueError as e:
+            return None, f"ValueError: {e}"
+        if not np.isfinite(res.fun):
+            return res, f"non-finite fitness {res.fun}"
+        return res, None
+
     def _single_bh_run(
         self,
         run: int,
@@ -206,26 +239,20 @@ class BasinHoppingSampler:
             Tuple of (records, nfev) for this run.
         """
         nfev = 0
-
-        try:
-            res = minimize(
-                func,
-                initial_point,
-                method=self.config.minimizer_method,
-                options=self.config.minimizer_options,
-                bounds=bounds_array if self.config.bounded else None,
-            )
-        except ValueError as e:
+        res, failure = self._local_search(func, initial_point, bounds_array)
+        if res is not None:
+            nfev += res.nfev
+        if failure is not None:
             warnings.warn(
-                f"Run {run}: initial minimize failed with ValueError: {e}. "
+                f"Run {run}: initial local search failed ({failure}). "
                 f"Starting point: {initial_point}. Skipping run.",
                 stacklevel=3,
             )
-            return [], 0
+            return [], nfev
+        assert res is not None
 
         current_x = res.x
         current_f = res.fun
-        nfev += res.nfev
 
         records: list[dict] = []
         iters_without_improvement = 0
@@ -241,24 +268,15 @@ class BasinHoppingSampler:
                 break
 
             x_perturbed = self._perturbation(current_x, p, rng, bounds_array)
-            try:
-                res = minimize(
-                    func,
-                    x_perturbed,
-                    method=self.config.minimizer_method,
-                    options=self.config.minimizer_options,
-                    bounds=bounds_array if self.config.bounded else None,
-                )
-            except ValueError as e:
-                # L-BFGS-B can produce internal iterates that slightly
-                # violate bounds, causing approx_derivative to fail.
-                # Skip this perturbation and try the next one.
+            res, failure = self._local_search(func, x_perturbed, bounds_array)
+            if failure is not None:
                 warnings.warn(
                     f"Run {run}, iteration {iter_index}: minimize after perturbation "
-                    f"failed with ValueError: {e}. "
+                    f"failed ({failure}). "
                     f"Perturbed point: {x_perturbed}. Skipping perturbation.",
                     stacklevel=3,
                 )
+            if res is None:
                 iters_without_improvement += 1
                 iter_index += 1
                 continue
@@ -266,6 +284,7 @@ class BasinHoppingSampler:
             new_x = res.x
             new_f = res.fun
             nfev += res.nfev
+            accepted = failure is None and new_f <= current_f
 
             records.append(
                 {
@@ -275,26 +294,27 @@ class BasinHoppingSampler:
                     "current_f": current_f,
                     "new_x": new_x.copy(),
                     "new_f": new_f,
-                    "accepted": new_f <= current_f,
+                    "accepted": accepted,
                 }
             )
 
+            # A failed local search counts as a non-improving iteration
             if self.config.n_iter_no_change is not None:
-                if new_f < current_f:
+                if failure is None and new_f < current_f:
                     iters_without_improvement = 0
                 else:
                     iters_without_improvement += 1
 
             # Acceptance criterion (minimization: accept if better or equal)
-            if new_f <= current_f:
+            if accepted:
                 current_x = new_x.copy()
                 current_f = new_f
 
             iter_index += 1
 
-        # No perturbation produced a record: preserve the finite initial result
+        # No perturbation produced a record: preserve the initial result
         # for _construct_trace_data without inventing an accepted move.
-        if self.config.preserve_runs_without_transitions and not records and np.isfinite(current_f):
+        if self.config.preserve_runs_without_transitions and not records:
             records.append(
                 {
                     "run": run,
@@ -363,6 +383,9 @@ class BasinHoppingSampler:
         The ``joblib.Parallel`` runner needs to use the ``_run_single_bh_in_worker`` function, because
         of pickling - the pickled objects cannot share the same memory to achieve true parallelism between the
         processes, so we need to create separate ``BasinHoppingSampler`` object for each run.
+
+        Warnings raised in worker processes do not reach the parent process, so workers
+        return them and they are re-emitted here.
         """
         parallel_runner = joblib.Parallel(
             n_jobs=effective_n_jobs,
@@ -388,7 +411,9 @@ class BasinHoppingSampler:
         result_iter = (
             tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
         )
-        for completed_runs, (_, records, nfev) in enumerate(result_iter, 1):
+        for completed_runs, (_, records, nfev, caught) in enumerate(result_iter, 1):
+            for message in caught:
+                warnings.warn(message, stacklevel=2)
             if progress_callback:
                 progress_callback(completed_runs, self.config.n_runs)
             raw_records.extend(records)
@@ -512,13 +537,13 @@ class BasinHoppingSampler:
         if self.config.preserve_runs_without_transitions:
             # A run with no accepted moves keeps its initial minimum as a self-loop row
             # (dropped from the graph by LON.from_trace_data()), so it still counts
-            # towards success/deviation. Non-finite minima are skipped.
+            # towards success/deviation.
             runs_in_trace = {row["run"] for row in trace_records}
             first_records: dict[int, dict] = {}
             for rec in raw_records:
                 first_records.setdefault(rec["run"], rec)
             for run, rec in first_records.items():
-                if run in runs_in_trace or not np.isfinite(rec["current_f"]):
+                if run in runs_in_trace:
                     continue
                 node = self._hash_solution(
                     self._round_value(rec["current_x"], self.config.coordinate_precision)
@@ -650,7 +675,7 @@ def _run_single_bh_in_worker(
     bounds_array: np.ndarray | None,
     config: BasinHoppingSamplerConfig,
     seed: np.random.SeedSequence,
-) -> tuple[int, list[dict], int]:
+) -> tuple[int, list[dict], int, list[Warning | str]]:
     """
     Module-level worker for a single Basin-Hopping run.
 
@@ -669,12 +694,15 @@ def _run_single_bh_in_worker(
         seed: ``SeedSequence`` child spawned for this run.
 
     Returns:
-        Tuple of (run, records, nfev) for this run.
+        Tuple of (run, records, nfev, warnings) for this run. Warnings are returned
+        instead of emitted, because they would not reach the parent process.
     """
     sampler = BasinHoppingSampler(config)
     rng = np.random.default_rng(seed)
-    records, nfev = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
-    return run, records, nfev
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        records, nfev = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
+    return run, records, nfev, [w.message for w in caught]
 
 
 def compute_lon(

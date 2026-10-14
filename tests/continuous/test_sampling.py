@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import numpy as np
+import pandas as pd
 import pytest
 from scipy.optimize import OptimizeResult
 
@@ -71,27 +72,27 @@ class TestRunsWithoutAcceptedTransitions:
         }
 
     @pytest.mark.parametrize("preserve", [True, False])
-    @pytest.mark.parametrize("initial_fitness", [0.0, float("nan")])
-    def test_all_perturbations_fail(self, initial_fitness: float, preserve: bool) -> None:
+    def test_all_perturbations_fail(self, preserve: bool) -> None:
         sampler = BasinHoppingSampler(
             BasinHoppingSamplerConfig(
                 n_runs=1, max_iter=2, seed=SEED, preserve_runs_without_transitions=preserve
             )
         )
-        initial_result = OptimizeResult(x=np.zeros(2), fun=initial_fitness, nfev=1)
+        initial_result = OptimizeResult(x=np.zeros(2), fun=0.0, nfev=1)
         with (
             patch(
                 "lonkit.continuous.sampling.minimize",
                 side_effect=[initial_result, ValueError("failed"), ValueError("failed")],
             ),
-            pytest.warns(UserWarning, match="minimize after perturbation failed") as warnings,
+            pytest.warns(UserWarning) as warnings,
         ):
             result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.zeros((1, 2)))
 
-        assert len(warnings) == 2
+        messages = [str(w.message) for w in warnings]
+        assert sum("minimize after perturbation failed" in m for m in messages) == 2
         assert result.nfev == 1
         lon = sampler.sample_to_lon(result)
-        if not preserve or not np.isfinite(initial_fitness):
+        if not preserve:
             assert result.raw_records == []
             assert result.trace_df.empty
             assert lon.n_vertices == 0
@@ -144,3 +145,107 @@ class TestRunsWithoutAcceptedTransitions:
             nan_for_negative_x0, DOMAIN_2D, initial_points=np.array([[-2.0, 0.0], [2.0, 0.0]])
         )
         assert set(result.trace_df["run"]) == {2}
+
+
+def _res(x: float, fun: float, success: bool = True) -> OptimizeResult:
+    return OptimizeResult(
+        x=np.full(2, x),
+        fun=fun,
+        nfev=1,
+        success=success,
+        status=0 if success else 2,
+        message="ok" if success else "ABNORMAL",
+    )
+
+
+class TestMinimizerFailures:
+    def test_unconverged_finite_result_is_used(self) -> None:
+        sampler = BasinHoppingSampler(BasinHoppingSamplerConfig(n_runs=1, max_iter=1, seed=SEED))
+        results = [_res(2.0, 8.0), _res(1.0, 2.0, success=False)]
+        with patch("lonkit.continuous.sampling.minimize", side_effect=results):
+            result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.zeros((1, 2)))
+
+        (record,) = result.raw_records
+        assert record["accepted"]
+        assert result.nfev == 2
+        assert sampler.sample_to_lon(result).n_vertices == 2
+
+    @pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+    def test_non_finite_initial_minimum_fails_run(self, bad: float) -> None:
+        def f(x: np.ndarray) -> float:
+            return bad if x[0] > 3 else float(np.sum(x**2))
+
+        sampler = BasinHoppingSampler(
+            BasinHoppingSamplerConfig(n_runs=4, n_iter_no_change=5, seed=1)
+        )
+        points = np.array([[4.0, 1.0], [5.0, 2.0], [-1.0, -1.0], [-2.0, 1.0]])
+        with pytest.warns(UserWarning, match="initial local search failed"):
+            result = sampler.sample(f, [(-5, 5)] * 2, initial_points=points)
+
+        assert set(result.trace_df["run"]) == {3, 4}
+        assert np.isfinite(result.trace_df[["fit1", "fit2"]].to_numpy()).all()
+        assert all(r["run"] in (3, 4) for r in result.raw_records)
+        sampler.sample_to_lon(result)  # trace is valid
+
+    def test_non_finite_mid_run_is_never_accepted(self) -> None:
+        sampler = BasinHoppingSampler(BasinHoppingSamplerConfig(n_runs=1, max_iter=2, seed=SEED))
+        results = [_res(2.0, 8.0), _res(1.0, float("-inf")), _res(1.0, 2.0)]
+        with (
+            patch("lonkit.continuous.sampling.minimize", side_effect=results),
+            pytest.warns(UserWarning, match="minimize after perturbation failed"),
+        ):
+            result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.zeros((1, 2)))
+
+        assert [r["accepted"] for r in result.raw_records] == [False, True]
+        assert result.trace_df[["fit1", "fit2"]].to_numpy().tolist() == [[8.0, 2.0]]
+
+    def test_initial_value_error_reports_failed_run(self) -> None:
+        sampler = BasinHoppingSampler(BasinHoppingSamplerConfig(n_runs=2, max_iter=1, seed=SEED))
+        results = [ValueError("bad"), _res(2.0, 8.0), _res(1.0, 2.0)]
+        with (
+            patch("lonkit.continuous.sampling.minimize", side_effect=results),
+            pytest.warns(UserWarning, match="Run 1: initial local search failed"),
+        ):
+            result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.zeros((2, 2)))
+        assert result.trace_df["run"].tolist() == [2]
+
+    @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+    def test_failed_perturbations_stop_after_no_change_limit(self, bad: float) -> None:
+        sampler = BasinHoppingSampler(
+            BasinHoppingSamplerConfig(n_runs=1, n_iter_no_change=2, max_iter=None, seed=SEED)
+        )
+        results = [_res(2.0, 8.0), _res(1.0, bad), _res(1.0, bad)]
+        with (
+            patch("lonkit.continuous.sampling.minimize", side_effect=results) as minimize,
+            pytest.warns(UserWarning, match="minimize after perturbation failed") as warnings,
+        ):
+            result = sampler.sample(sphere, DOMAIN_2D, initial_points=np.zeros((1, 2)))
+
+        assert minimize.call_count == 3
+        assert len(warnings) == 2
+        assert not any(r["accepted"] for r in result.raw_records)
+        assert result.nfev == 3
+        assert result.trace_df["fit1"].tolist() == [8.0]
+        assert sampler.sample_to_lon(result).n_vertices == 1
+
+    def test_failed_runs_match_across_n_jobs(self) -> None:
+        def f(x: np.ndarray) -> float:
+            return float("nan") if x[0] > 3 else float(np.sum(x**2))
+
+        results = []
+        messages = []
+        points = np.array([[4.0, 1.0], [-1.0, -1.0]])
+        for n_jobs in (1, 2):
+            config = BasinHoppingSamplerConfig(
+                n_runs=2, n_iter_no_change=3, seed=SEED, n_jobs=n_jobs
+            )
+            with pytest.warns(UserWarning) as caught:
+                results.append(
+                    BasinHoppingSampler(config).sample(f, DOMAIN_2D, initial_points=points)
+                )
+            messages.append(sorted(str(w.message) for w in caught))
+        assert any("Run 1: initial local search failed" in m for m in messages[1])
+        assert messages[0] == messages[1]
+        pd.testing.assert_frame_equal(results[0].trace_df, results[1].trace_df)
+        assert results[0].nfev == results[1].nfev
+        assert set(results[0].trace_df["run"]) == {2}

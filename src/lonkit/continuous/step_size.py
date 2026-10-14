@@ -3,7 +3,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.optimize import minimize
 
 from lonkit.continuous.sampling import BasinHoppingSampler, BasinHoppingSamplerConfig
 
@@ -33,6 +32,10 @@ class StepSizeEstimatorConfig:
             Default: `None`.
         bounded: Whether to enforce domain bounds during perturbation. Default: `True`.
         seed: Random seed for reproducibility. Default: `None`.
+
+    Failed local searches (see ``BasinHoppingSamplerConfig``) are skipped: a sample whose
+    initial local search fails is dropped, and failed perturbations are excluded from
+    that sample's escape rate.
     """
 
     n_samples: int = 100
@@ -125,6 +128,13 @@ class StepSizeEstimator:
         Compute the average escape rate for a given step size.
 
         Cost per call: `n_samples` + `n_samples * n_perturbations` minimizations.
+
+        Each sample's escape rate is the fraction of escapes among its evaluated
+        perturbations, i.e. those whose local search did not fail.
+
+        Raises:
+            RuntimeError: If no sample has a valid initial local search and at least
+                one evaluated perturbation.
         """
         bounds_array = domain_array if self.config.bounded else None
         p = step_size * np.abs(domain_array[:, 1] - domain_array[:, 0])
@@ -134,53 +144,46 @@ class StepSizeEstimator:
 
         for _ in range(self.config.n_samples):
             x0 = rng.uniform(domain_array[:, 0], domain_array[:, 1])
-            try:
-                res = minimize(
-                    func,
-                    x0,
-                    method=self.config.minimizer_method,
-                    options=self.config.minimizer_options,
-                    bounds=bounds_array if self.config.bounded else None,
-                )
-            except ValueError as e:
+            res, failure = sampler._local_search(func, x0, bounds_array)
+            if failure is not None:
                 warnings.warn(
-                    f"Initial minimize failed with ValueError: {e}. "
-                    f"Starting point: {x0}. Skipping run.",
+                    f"Initial local search failed ({failure}). "
+                    f"Starting point: {x0}. Skipping sample.",
                     stacklevel=3,
                 )
                 continue
+            assert res is not None
             optimum = res.x
             optimum_rounded = sampler._round_value(optimum, self.config.coordinate_precision)
             optimum_hash = sampler._hash_solution(optimum_rounded)
 
             escapes = 0
+            evaluated = 0
             for _ in range(self.config.n_perturbations):
                 x_perturbed = sampler._perturbation(optimum, p, rng, bounds_array)
-                try:
-                    res_perturbed = minimize(
-                        func,
-                        x_perturbed,
-                        method=self.config.minimizer_method,
-                        options=self.config.minimizer_options,
-                        bounds=bounds_array,
-                    )
-                except ValueError as e:
-                    # L-BFGS-B can produce internal iterates that slightly
-                    # violate bounds, causing approx_derivative to fail.
-                    # Skip this perturbation and try the next one.
+                res_perturbed, failure = sampler._local_search(func, x_perturbed, bounds_array)
+                if failure is not None:
+                    # Excluded from this sample's escape rate
                     warnings.warn(
-                        f"Minimize after perturbation "
-                        f"failed with ValueError: {e}. "
+                        f"Minimize after perturbation failed ({failure}). "
                         f"Perturbed point: {x_perturbed}. Skipping perturbation.",
                         stacklevel=3,
                     )
                     continue
+                assert res_perturbed is not None
+                evaluated += 1
                 new_hash = sampler._hash_solution(res_perturbed.x)
                 if new_hash != optimum_hash:
                     escapes += 1
 
-            escape_rates.append(escapes / self.config.n_perturbations)
+            if evaluated:
+                escape_rates.append(escapes / evaluated)
 
+        if not escape_rates:
+            raise RuntimeError(
+                f"Could not estimate the escape rate for step size {step_size}: "
+                "every sample failed its initial local search or all of its perturbations."
+            )
         return float(np.mean(escape_rates))
 
     def estimate(

@@ -168,6 +168,23 @@ config = BasinHoppingSamplerConfig(
 )
 ```
 
+### Failed Local Searches
+
+A local search fails when `minimize` raises `ValueError` or returns a non-finite
+fitness (`nan` or `inf`). Such a result never enters the LON:
+
+- if the initial local search of a run fails, the whole run fails and is left out
+  of the trace and the performance metrics;
+- if a local search after a perturbation fails, it is rejected and counts as a
+  non-improving iteration.
+
+Results with `success=False` but a finite fitness are used as local optima. On
+non-smooth functions such as Ackley, L-BFGS-B often reports `ABNORMAL` at genuine
+optima.
+
+Each failed local search emits a warning with the run and iteration (for
+perturbations), the starting point, and the reason for failure.
+
 ## Discrete Sampling with ILS
 
 Independent ILS runs can use multiple processes via `n_jobs`:
