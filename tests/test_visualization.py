@@ -1,5 +1,7 @@
+import random
 from pathlib import Path
 
+import igraph as ig
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -27,6 +29,36 @@ class TestLayoutReproducibility:
         coords1 = visualizer.get_layout(rastrigin_lon.graph, seed=SEED)
         coords2 = visualizer.get_layout(rastrigin_lon.graph, seed=SEED + 1)
         assert not np.array_equal(coords1, coords2)
+
+    def test_layout_does_not_change_global_numpy_rng(
+        self, rastrigin_lon: LON, visualizer: LONVisualizer
+    ) -> None:
+        np.random.seed(123)
+        expected = np.random.rand(5)
+
+        np.random.seed(123)
+        visualizer.get_layout(rastrigin_lon.graph, seed=SEED)
+        np.testing.assert_array_equal(np.random.rand(5), expected)
+
+    def test_layout_restores_igraph_rng(
+        self, rastrigin_lon: LON, visualizer: LONVisualizer
+    ) -> None:
+        ig.set_random_number_generator(random)
+        random.seed(123)
+        expected = ig.Graph.Erdos_Renyi(n=50, m=100).get_edgelist()
+
+        random.seed(123)
+        visualizer.get_layout(rastrigin_lon.graph, seed=SEED)
+        assert ig.Graph.Erdos_Renyi(n=50, m=100).get_edgelist() == expected
+
+    def test_layout_same_seed_ignores_global_numpy_state(
+        self, rastrigin_lon: LON, visualizer: LONVisualizer
+    ) -> None:
+        np.random.seed(1)
+        coords1 = visualizer.get_layout(rastrigin_lon.graph, seed=SEED)
+        np.random.seed(2)
+        coords2 = visualizer.get_layout(rastrigin_lon.graph, seed=SEED)
+        np.testing.assert_array_equal(coords1, coords2)
 
 
 class TestPlot2DReproducibility:
