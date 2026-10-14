@@ -383,6 +383,9 @@ class BasinHoppingSampler:
         The ``joblib.Parallel`` runner needs to use the ``_run_single_bh_in_worker`` function, because
         of pickling - the pickled objects cannot share the same memory to achieve true parallelism between the
         processes, so we need to create separate ``BasinHoppingSampler`` object for each run.
+
+        Warnings raised in worker processes do not reach the parent process, so workers
+        return them and they are re-emitted here.
         """
         parallel_runner = joblib.Parallel(
             n_jobs=effective_n_jobs,
@@ -408,7 +411,9 @@ class BasinHoppingSampler:
         result_iter = (
             tqdm(parallel_results, total=self.config.n_runs) if verbose else parallel_results
         )
-        for completed_runs, (_, records, nfev) in enumerate(result_iter, 1):
+        for completed_runs, (_, records, nfev, caught) in enumerate(result_iter, 1):
+            for message in caught:
+                warnings.warn(message, stacklevel=2)
             if progress_callback:
                 progress_callback(completed_runs, self.config.n_runs)
             raw_records.extend(records)
@@ -532,13 +537,13 @@ class BasinHoppingSampler:
         if self.config.preserve_runs_without_transitions:
             # A run with no accepted moves keeps its initial minimum as a self-loop row
             # (dropped from the graph by LON.from_trace_data()), so it still counts
-            # towards success/deviation. Non-finite minima are skipped.
+            # towards success/deviation.
             runs_in_trace = {row["run"] for row in trace_records}
             first_records: dict[int, dict] = {}
             for rec in raw_records:
                 first_records.setdefault(rec["run"], rec)
             for run, rec in first_records.items():
-                if run in runs_in_trace or not np.isfinite(rec["current_f"]):
+                if run in runs_in_trace:
                     continue
                 node = self._hash_solution(
                     self._round_value(rec["current_x"], self.config.coordinate_precision)
@@ -670,7 +675,7 @@ def _run_single_bh_in_worker(
     bounds_array: np.ndarray | None,
     config: BasinHoppingSamplerConfig,
     seed: np.random.SeedSequence,
-) -> tuple[int, list[dict], int]:
+) -> tuple[int, list[dict], int, list[Warning | str]]:
     """
     Module-level worker for a single Basin-Hopping run.
 
@@ -689,12 +694,15 @@ def _run_single_bh_in_worker(
         seed: ``SeedSequence`` child spawned for this run.
 
     Returns:
-        Tuple of (run, records, nfev) for this run.
+        Tuple of (run, records, nfev, warnings) for this run. Warnings are returned
+        instead of emitted, because they would not reach the parent process.
     """
     sampler = BasinHoppingSampler(config)
     rng = np.random.default_rng(seed)
-    records, nfev = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
-    return run, records, nfev
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        records, nfev = sampler._single_bh_run(run, func, initial_point, p, bounds_array, rng)
+    return run, records, nfev, [w.message for w in caught]
 
 
 def compute_lon(

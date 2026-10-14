@@ -163,9 +163,7 @@ class StepSizeEstimator:
                 x_perturbed = sampler._perturbation(optimum, p, rng, bounds_array)
                 res_perturbed, failure = sampler._local_search(func, x_perturbed, bounds_array)
                 if failure is not None:
-                    # L-BFGS-B can produce internal iterates that slightly
-                    # violate bounds, causing approx_derivative to fail.
-                    # Skip this perturbation and try the next one.
+                    # Excluded from this sample's escape rate
                     warnings.warn(
                         f"Minimize after perturbation failed ({failure}). "
                         f"Perturbed point: {x_perturbed}. Skipping perturbation.",

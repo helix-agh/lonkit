@@ -233,12 +233,19 @@ class TestMinimizerFailures:
             return float("nan") if x[0] > 3 else float(np.sum(x**2))
 
         results = []
+        messages = []
         points = np.array([[4.0, 1.0], [-1.0, -1.0]])
         for n_jobs in (1, 2):
             config = BasinHoppingSamplerConfig(
                 n_runs=2, n_iter_no_change=3, seed=SEED, n_jobs=n_jobs
             )
-            results.append(BasinHoppingSampler(config).sample(f, DOMAIN_2D, initial_points=points))
+            with pytest.warns(UserWarning) as caught:
+                results.append(
+                    BasinHoppingSampler(config).sample(f, DOMAIN_2D, initial_points=points)
+                )
+            messages.append(sorted(str(w.message) for w in caught))
+        assert any("Run 1: initial local search failed" in m for m in messages[1])
+        assert messages[0] == messages[1]
         pd.testing.assert_frame_equal(results[0].trace_df, results[1].trace_df)
         assert results[0].nfev == results[1].nfev
         assert set(results[0].trace_df["run"]) == {2}
