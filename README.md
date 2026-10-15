@@ -72,6 +72,19 @@ viz.plot_2d(lon, output_path="lon_2d.png")
 viz.plot_3d(lon, output_path="lon_3d.png")
 ```
 
+<table>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/readme/rastrigin_lon_2d.png" alt="2D plot of the Rastrigin LON" width="400"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/readme/rastrigin_lon_3d.png" alt="3D plot of the Rastrigin LON with fitness on the Z-axis" width="400"></td>
+  </tr>
+  <tr>
+    <td align="center"><code>plot_2d(lon)</code></td>
+    <td align="center"><code>plot_3d(lon)</code>: fitness on the Z-axis</td>
+  </tr>
+</table>
+
+Nodes are local optima and edges are transitions between them, with node size and edge width growing with how often they were visited. Global optima are drawn in red and the nodes of their funnels in pink; sinks of other funnels are drawn in blue and the nodes of their funnels in light blue.
+
 ### Compressed Monotonic LONs (CMLONs)
 
 CMLONs are a compressed representation where nodes with equal fitness that are connected get merged. This provides a cleaner view of the landscape's funnel structure.
@@ -83,6 +96,17 @@ cmlon = lon.to_cmlon()
 # Analyze CMLON-specific metrics
 cmlon_metrics = cmlon.compute_metrics()
 ```
+
+<table>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/readme/rastrigin_lon_2d.png" alt="Rastrigin LON" width="400"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/readme/rastrigin_cmlon_2d.png" alt="Rastrigin CMLON" width="400"></td>
+  </tr>
+  <tr>
+    <td align="center">LON: 45 optima</td>
+    <td align="center">CMLON: 39 optima</td>
+  </tr>
+</table>
 
 ### Custom Sampling Configuration
 
@@ -139,9 +163,15 @@ viz = LONVisualizer()
 viz.plot_2d(cmlon, output_path="npp_cmlon.png")
 ```
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/readme/npp_cmlon_2d.png" alt="CMLON of a Number Partitioning instance with many global funnels and one local funnel" width="500">
+</p>
+
+Unlike Rastrigin, this Number Partitioning instance has many separate funnels: most of them end in a global optimum (red), and one ends in a worse local sink (blue).
+
 ### Custom Discrete Problems
 
-You can define your own discrete problem by subclassing `DiscreteProblem`. For bitstring problems, inherit from `BitstringProblem` instead it provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box. You only need to implement `evaluate()`.
+You can define your own discrete problem by subclassing `DiscreteProblem`. For bitstring problems, inherit from `BitstringProblem` instead; it provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box. You only need to implement `evaluate()`.
 
 ## Documentation
 

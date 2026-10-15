@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.9.0
+
+A bug-fix release focused on correctness of sampling, metrics, and plots.
 
 ### Bug Fixes
 
@@ -10,7 +12,11 @@
 - Continuous sampling now handles failed local searches explicitly. A local search fails when `minimize` raises `ValueError` or returns a non-finite fitness. A failed initial local search fails its run, and a failed search after a perturbation is rejected and counts as a non-improving iteration. Previously, runs starting at a `nan` minimum silently vanished, and an `inf` minimum made `LON.from_trace_data()` fail after all sampling had finished. Results with `success=False` and a finite fitness are still used as local optima. Each failed local search emits a warning with its context and reason (#44).
 - `StepSizeEstimator` divides each sample's escape count by its number of evaluated perturbations instead of `n_perturbations`, so failed local searches no longer bias the escape rate down. Samples whose initial local search fails are skipped, and `RuntimeError` is raised if no sample can be evaluated, instead of returning `nan` (#44).
 - Runs without accepted transitions are no longer dropped from the LON and its performance metrics. `BasinHoppingSampler` and `ILSSampler` now record such a run as a single trace row from its initial local optimum to itself. `LON.from_trace_data()` drops self-loops, so the optimum becomes a vertex without edges and the run counts towards `success` and `deviation`. Basin-Hopping runs with a non-finite initial minimum are still skipped. Seeded traces and LONs change only when some run had no accepted transitions. Set `preserve_runs_without_transitions=False` in either sampler config to restore the earlier behavior, excluding these runs from both the graph and performance metrics (#39).
-
+- `CMLON.compute_metrics()` now computes `global_funnel_proportion` from the same global sinks as `n_global_funnels`, so it respects `known_best` instead of always using the best fitness in the network (#41).
+- `LON` and `CMLON` without vertices now return zero network metrics instead of raising igraph `KeyError`, and performance metrics return `0.0` when there are no runs. `to_cmlon()`, `plot_2d()`, and `plot_3d()` handle empty networks (#38).
+- `create_rotation_gif()` no longer deletes a pre-existing `.temp_frames` directory next to the output file. Frames are rendered in memory (#37).
+- `compute_lon()` now raises `ValueError` for a non-positive or non-integer `dim`, bounds whose length differs from `dim`, non-finite bounds, and a lower bound greater than the upper bound.
+- `NumberPartitioning` now raises `ValueError` for a non-finite `k` and, for randomly generated weights, when `n * k >= 63`, since the weights would overflow signed 64-bit integers. Explicit `weights` are not limited.
 - Raised the minimum joblib version to 1.4.0, which introduced the `generator_unordered` mode required by parallel Basin-Hopping sampling.
 - `BitstringProblem.local_search()` now returns a full `evaluate()` of the final solution instead of the fitness accumulated from deltas. For `NKLandscape`, float drift gave the same local optimum slightly different fitness values on different visits. ILS then counted returns to the same optimum as improvements, and the LON had duplicate nodes with multiple fitness values. Seeded NK samples may differ from earlier versions.
 

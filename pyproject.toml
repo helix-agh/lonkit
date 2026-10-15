@@ -1,6 +1,6 @@
 [project]
 name = "lonkit"
-version = "0.8.0"
+version = "0.9.0"
 description = "Local Optima Networks (LONs) for continuous and discrete optimization - Python implementation"
 readme = "README.md"
 requires-python = ">=3.10"
