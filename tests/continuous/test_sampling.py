@@ -5,8 +5,54 @@ import pandas as pd
 import pytest
 from scipy.optimize import OptimizeResult
 
-from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig
+from lonkit import BasinHoppingSampler, BasinHoppingSamplerConfig, compute_lon
 from tests.conftest import DOMAIN_2D, SEED, sphere
+
+
+class TestComputeLonDomain:
+    @pytest.mark.parametrize(
+        "dim, lower, upper, message",
+        [
+            (0, -1, 1, "positive integer"),
+            (-1, -1, 1, "positive integer"),
+            (1.5, -1, 1, "positive integer"),
+            (True, -1, 1, "positive integer"),
+            (2, [0], [1], "exactly dim"),
+            (2, [0, 0], [1], "exactly dim"),
+            (2, [0], 1, "exactly dim"),
+            (2, [[0, 0]], [[1, 1]], "exactly dim"),
+            (2, -np.inf, 1, "finite"),
+            (2, 0, [1, np.inf], "finite"),
+            (2, [0, np.nan], 1, "finite"),
+            (2, [0, 2], [1, 1], "lower_bound must be <="),
+        ],
+    )
+    def test_invalid_domain_fails_before_sampling(self, dim, lower, upper, message):
+        with patch.object(BasinHoppingSampler, "sample") as sample:
+            with pytest.raises(ValueError, match=message):
+                compute_lon(sphere, dim, lower, upper)
+            sample.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "lower, upper",
+        [(-1, 1), ([-1, 0], [1, 0]), (np.array([-1, -1]), 1)],
+    )
+    def test_valid_domain_preserves_dimension(self, lower, upper):
+        dimensions = []
+
+        def objective(x):
+            dimensions.append(len(x))
+            return sphere(x)
+
+        lon = compute_lon(
+            objective,
+            2,
+            lower,
+            upper,
+            config=BasinHoppingSamplerConfig(n_runs=1, max_iter=1, seed=SEED),
+        )
+        assert dimensions and set(dimensions) == {2}
+        assert lon.n_vertices > 0
 
 
 class TestHashSolution:
