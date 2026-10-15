@@ -54,6 +54,26 @@ class TestOneMax:
 
 
 class TestNumberPartitioningBasic:
+    @pytest.mark.parametrize("n, k", [(63, 1), (100, 1), (1000, 2)])
+    def test_random_weights_reject_int64_overflow(self, n, k):
+        with pytest.raises(ValueError, match=r"n \* k < 63"):
+            NumberPartitioning(n=n, k=k, instance_seed=42)
+
+    @pytest.mark.parametrize("k", [float("nan"), float("inf"), float("-inf"), 0, -1])
+    def test_random_weights_require_finite_positive_k(self, k):
+        with pytest.raises(ValueError, match="finite and positive"):
+            NumberPartitioning(n=2, k=k, instance_seed=42)
+
+    def test_random_weights_just_below_int64_limit(self):
+        problem = NumberPartitioning(n=63, k=np.nextafter(1.0, 0.0), instance_seed=42)
+        assert len(problem.weights) == 63
+        assert all(1 <= weight <= np.iinfo(np.int64).max for weight in problem.weights)
+
+    def test_explicit_weights_are_not_limited_to_int64(self):
+        weights = [2**64, 2**64]
+        problem = NumberPartitioning(n=2, weights=weights)
+        assert problem.weights == weights
+
     def test_minimize_is_true(self):
         p = NumberPartitioning(n=4, weights=[3, 1, 1, 3])
         assert p.minimize is True

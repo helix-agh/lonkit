@@ -171,7 +171,9 @@ class NumberPartitioning(BitstringProblem):
         n: Number of items. Must be > 0.
         k: Hardness parameter. Items drawn uniformly from [1, 2^(n*k)].
             Higher k = harder instances (phase transition around k ~ 1.0).
-            Required if `weights` is not provided. Must be > 0.
+            Required if `weights` is not provided. Must be finite and > 0.
+            Random generation requires `n * k < 63` so the generated weights
+            fit in signed 64-bit integers. This limit does not apply to explicit `weights`.
         instance_seed: Seed for generating item weights.
             Required if `weights` is not provided.
         weights: Explicit item weights. If provided, `k` and
@@ -212,8 +214,10 @@ class NumberPartitioning(BitstringProblem):
             self.k = None
             self.instance_seed = None
         elif k is not None and instance_seed is not None:
-            if k <= 0:
-                raise ValueError(f"k must be positive, got {k}")
+            if not math.isfinite(k) or k <= 0:
+                raise ValueError(f"k must be finite and positive, got {k}")
+            if n * k >= 63:
+                raise ValueError("Random weight generation requires n * k < 63 (int64 limit).")
             self.k = k
             self.instance_seed = instance_seed
             # Generate item weights using a separate RNG
