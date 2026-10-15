@@ -6,6 +6,9 @@ description: 2D and 3D visualizations of Local Optima Networks. Export plots as 
 
 This guide covers how to create visualizations of Local Optima Networks.
 
+Exporting 3D images and rotation GIFs requires Chrome/Chromium. If needed, install
+it with `kaleido_get_chrome`; see the [installation guide](../getting-started/installation.md#chrome-for-3d-image-and-gif-export).
+
 ## Quick Start
 
 ```python

@@ -5,6 +5,7 @@ import igraph as ig
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from PIL import Image
 
 from lonkit import LON, LONVisualizer
 from tests.conftest import SEED
@@ -13,6 +14,33 @@ from tests.conftest import SEED
 @pytest.fixture
 def visualizer() -> LONVisualizer:
     return LONVisualizer()
+
+
+@pytest.mark.parametrize("extension", ["png", "gif"])
+def test_3d_export(visualizer: LONVisualizer, tmp_path: Path, extension: str) -> None:
+    graph = ig.Graph(n=3, edges=[(0, 1), (1, 2)], directed=True)
+    graph.vs["Fitness"] = [3.0, 1.0, 0.0]
+    graph.vs["Count"] = [1, 1, 1]
+    graph.es["Count"] = [1, 1]
+    lon = LON(graph=graph, best_fitness=0.0)
+    path = tmp_path / f"plot.{extension}"
+
+    if extension == "png":
+        visualizer.plot_3d(lon, output_path=path, width=200, height=200, seed=SEED)
+    else:
+        visualizer.create_rotation_gif(
+            lon, path, width=200, height=200, duration=1, fps=3, seed=SEED
+        )
+
+    with Image.open(path) as image:
+        assert image.format == extension.upper()
+        assert image.size == (200, 200)
+        assert image.n_frames == (1 if extension == "png" else 3)
+        pixels = np.array(image.convert("RGB"))
+        assert pixels.min() < pixels.max()
+        if extension == "gif":
+            image.seek(1)
+            assert not np.array_equal(pixels, np.array(image.convert("RGB")))
 
 
 class TestLayoutReproducibility:

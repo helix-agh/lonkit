@@ -352,7 +352,7 @@ class LONVisualizer:
         )
 
         if output_path:
-            fig.write_image(str(output_path))
+            fig.write_image(str(output_path), width=width, height=height)
 
         return fig
 
