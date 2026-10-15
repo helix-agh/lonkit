@@ -745,6 +745,9 @@ def compute_lon(
         >>> lon = compute_lon(sphere, dim=5, lower_bound=-5.0, upper_bound=5.0)
         >>> print(f"Found {lon.n_vertices} local optima")
     """
+    if isinstance(dim, bool) or not isinstance(dim, int | np.integer) or dim <= 0:
+        raise ValueError("dim must be a positive integer.")
+
     # Convert scalars to lists, leave sequences as-is
     lower_bounds: Sequence[float] = (
         [lower_bound] * dim if isinstance(lower_bound, int | float) else lower_bound
@@ -752,6 +755,15 @@ def compute_lon(
     upper_bounds: Sequence[float] = (
         [upper_bound] * dim if isinstance(upper_bound, int | float) else upper_bound
     )
+
+    lower_array = np.asarray(lower_bounds, dtype=float)
+    upper_array = np.asarray(upper_bounds, dtype=float)
+    if lower_array.shape != (dim,) or upper_array.shape != (dim,):
+        raise ValueError("lower_bound and upper_bound must each have exactly dim values.")
+    if not np.isfinite(lower_array).all() or not np.isfinite(upper_array).all():
+        raise ValueError("Domain bounds must be finite.")
+    if np.any(lower_array > upper_array):
+        raise ValueError("lower_bound must be <= upper_bound in every dimension.")
 
     domain = list(zip(lower_bounds, upper_bounds, strict=True))
 
