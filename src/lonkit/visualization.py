@@ -6,6 +6,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
+from matplotlib.lines import Line2D
 
 from lonkit.lon import CMLON, LON
 
@@ -20,6 +21,21 @@ COLORS = {
 }
 
 BACKGROUND_COLOR = "rgba(255,255,255,255)"
+
+LON_LEGEND = [("lon_global", "Global optimum"), ("lon_local", "Local optimum")]
+CMLON_LEGEND = [
+    ("global_optimum", "Global optimum"),
+    ("global_basin", "Global funnel"),
+    ("local_sink", "Local sink"),
+    ("local_basin", "Local funnel"),
+]
+
+
+def _legend_entries(lon_or_cmlon: LON | CMLON, node_colors: list[str]) -> list[tuple[str, str]]:
+    """Return `(color, label)` pairs for the node categories present in the plot."""
+    present = set(node_colors)
+    legend = CMLON_LEGEND if isinstance(lon_or_cmlon, CMLON) else LON_LEGEND
+    return [(COLORS[key], label) for key, label in legend if COLORS[key] in present]
 
 
 def _ensure_parent_dir(path: str | Path) -> Path:
@@ -236,6 +252,32 @@ class LONVisualizer:
             zorder=10,
         )
 
+        entries = _legend_entries(lon_or_cmlon, node_colors)
+        if entries:
+            handles = [
+                Line2D(
+                    [],
+                    [],
+                    linestyle="none",
+                    marker="o",
+                    markersize=8,
+                    markerfacecolor=color,
+                    markeredgecolor="black",
+                    markeredgewidth=0.5,
+                    label=label,
+                )
+                for color, label in entries
+            ]
+            ax.legend(
+                handles=handles,
+                loc="upper center",
+                bbox_to_anchor=(0.5, 0.0),
+                ncol=len(handles),
+                frameon=False,
+                handletextpad=0.3,
+                columnspacing=1.5,
+            )
+
         plt.tight_layout()
 
         if output_path:
@@ -323,6 +365,19 @@ class LONVisualizer:
             )
         )
 
+        # Legend-only traces: plotly cannot show one legend entry per node color.
+        for color, label in _legend_entries(lon_or_cmlon, node_colors):
+            fig.add_trace(
+                go.Scatter3d(
+                    x=[None],
+                    y=[None],
+                    z=[None],
+                    mode="markers",
+                    marker=dict(size=8, color=color, line=dict(color="black", width=0.5)),
+                    name=label,
+                )
+            )
+
         fig.update_layout(
             scene=dict(
                 xaxis=dict(
@@ -354,6 +409,7 @@ class LONVisualizer:
             margin=dict(l=0, r=0, t=0, b=0),
             paper_bgcolor=BACKGROUND_COLOR,
             plot_bgcolor=BACKGROUND_COLOR,
+            legend=dict(orientation="h", x=0.5, xanchor="center", y=0.02, yanchor="bottom"),
         )
 
         if output_path:
