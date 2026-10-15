@@ -27,6 +27,9 @@ pre-commit install
 
 ### Running Tests
 
+The image export tests require Chrome/Chromium. If it is not installed, run
+`uv run kaleido_get_chrome` once before running the suite.
+
 ```bash
 pytest
 ```

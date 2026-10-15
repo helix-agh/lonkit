@@ -26,6 +26,10 @@ lonkit is a Python library for constructing, analyzing, and visualizing Local Op
 pip install lonkit
 ```
 
+Exporting 3D plots to images or GIFs also requires Chrome/Chromium. If it is not
+installed, run `kaleido_get_chrome` after installing lonkit. See the
+[installation guide](https://helix-agh.github.io/lonkit/getting-started/installation/).
+
 Or install from source:
 
 ```bash
