@@ -150,3 +150,54 @@ class TestColorsRespectTolerance:
 
         assert colors["a"] == colors["b"] == COLORS["lon_global"]
         assert colors["x"] == colors["y"] == COLORS["lon_local"]
+
+
+class TestLegend:
+    @pytest.fixture
+    def two_funnel_lon(self) -> LON:
+        trace = pd.DataFrame(
+            {
+                "run": [0, 1],
+                "fit1": [3.0, 4.0],
+                "node1": ["a", "c"],
+                "fit2": [0.0, 1.0],
+                "node2": ["b", "d"],
+            }
+        )
+        return LON.from_trace_data(trace)
+
+    def test_2d_legend_lists_present_categories(
+        self, two_funnel_lon: LON, visualizer: LONVisualizer
+    ) -> None:
+        lon_fig = visualizer.plot_2d(two_funnel_lon, seed=SEED)
+        cmlon_fig = visualizer.plot_2d(two_funnel_lon.to_cmlon(), seed=SEED)
+        try:
+            lon_labels = [t.get_text() for t in lon_fig.axes[0].get_legend().get_texts()]
+            cmlon_labels = [t.get_text() for t in cmlon_fig.axes[0].get_legend().get_texts()]
+        finally:
+            plt.close("all")
+
+        assert lon_labels == ["Global optimum", "Local optimum"]
+        assert cmlon_labels == ["Global optimum", "Global funnel", "Local sink", "Local funnel"]
+
+    def test_3d_legend_lists_present_categories(
+        self, two_funnel_lon: LON, visualizer: LONVisualizer
+    ) -> None:
+        single_trace = pd.DataFrame(
+            {"run": [0], "fit1": [1.0], "node1": ["a"], "fit2": [0.0], "node2": ["b"]}
+        )
+        single_funnel = LON.from_trace_data(single_trace).to_cmlon()
+
+        fig = visualizer.plot_3d(two_funnel_lon.to_cmlon(), seed=SEED)
+        single_fig = visualizer.plot_3d(single_funnel, seed=SEED)
+
+        assert [t.name for t in fig.data if t.showlegend is not False] == [
+            "Global optimum",
+            "Global funnel",
+            "Local sink",
+            "Local funnel",
+        ]
+        assert [t.name for t in single_fig.data if t.showlegend is not False] == [
+            "Global optimum",
+            "Global funnel",
+        ]

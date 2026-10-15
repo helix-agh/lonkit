@@ -83,7 +83,7 @@ viz.plot_3d(lon, output_path="lon_3d.png")
   </tr>
 </table>
 
-Nodes are local optima and edges are transitions between them, with node size and edge width growing with how often they were visited. Global optima are drawn in red and the nodes of their funnels in pink; sinks of other funnels are drawn in blue and the nodes of their funnels in light blue.
+Nodes are local optima and edges are transitions between them, with node size and edge width growing with how often they were visited.
 
 ### Compressed Monotonic LONs (CMLONs)
 

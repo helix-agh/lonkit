@@ -4,6 +4,10 @@
 
 A bug-fix release focused on correctness of sampling, metrics, and plots.
 
+### Highlights
+
+- `LONVisualizer.plot_2d()` and `plot_3d()` now draw a legend of node categories: global and local optima for a LON, and global optima, global funnels, local sinks, and local funnels for a CMLON. Only categories present in the plot are listed.
+
 ### Bug Fixes
 
 - `LONVisualizer.compute_lon_colors()` and `compute_cmlon_colors()`, and therefore all plots, now classify global optima using the network's `eq_atol`, like the network metrics, instead of exact equality. `CMLON.get_local_sinks()` now returns exactly the sinks that are not global sinks, so a sink within `eq_atol` of the best fitness is no longer both a global and a local sink. Previously, such sinks counted towards `n_global_funnels` but were drawn as local sinks. Plots of networks with rounded fitness (`fitness_precision`) and the default `eq_atol` are unchanged.
