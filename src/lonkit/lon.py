@@ -542,20 +542,17 @@ class CMLON:
         return [i for i, d in enumerate(out_degrees) if d == 0]
 
     def get_global_sinks(self) -> list[int]:
-        """Get indices of global sinks (sinks at best fitness)."""
+        """Get indices of global sinks (sinks at best fitness within `eq_atol`)."""
         sinks = self.get_sinks()
         fits = self.vertex_fitness
         return [s for s in sinks if self._allclose(fits[s], self.best_fitness)]
 
     def get_local_sinks(self) -> list[int]:
-        """Get indices of local sinks (sinks not at best fitness)."""
-        sinks = self.get_sinks()
-        fits = self.vertex_fitness
+        """Get indices of local sinks (sinks not at best fitness within `eq_atol`)."""
         if self.best_fitness is None:
             return []
-        if self.minimize:
-            return [s for s in sinks if fits[s] > self.best_fitness]
-        return [s for s in sinks if fits[s] < self.best_fitness]
+        global_sinks = set(self.get_global_sinks())
+        return [s for s in self.get_sinks() if s not in global_sinks]
 
     def compute_network_metrics(self, known_best: float | None = None) -> dict[str, Any]:
         """

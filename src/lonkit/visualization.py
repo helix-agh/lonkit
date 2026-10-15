@@ -103,13 +103,16 @@ class LONVisualizer:
         return sizes
 
     def compute_lon_colors(self, lon: LON) -> list[str]:
-        """Compute node colors for LON visualization."""
+        """Compute node colors for LON visualization.
+
+        Nodes within `lon.eq_atol` of the best fitness are colored as global optima.
+        """
         colors = []
         fits = lon.vertex_fitness
         best = lon.best_fitness
 
         for f in fits:
-            if f == best:
+            if lon._allclose(f, best):
                 colors.append(COLORS["lon_global"])
             else:
                 colors.append(COLORS["lon_local"])
@@ -117,11 +120,14 @@ class LONVisualizer:
         return colors
 
     def compute_cmlon_colors(self, cmlon: CMLON) -> list[str]:
-        """Compute node colors for CMLON visualization."""
+        """Compute node colors for CMLON visualization.
+
+        Nodes within `cmlon.eq_atol` of the best fitness are colored as global optima,
+        consistently with `get_global_sinks()` and the network metrics.
+        """
         n_vertices = cmlon.n_vertices
         colors = [COLORS["local_basin"]] * n_vertices
 
-        sinks = cmlon.get_sinks()
         global_sinks = cmlon.get_global_sinks()
         fits = cmlon.vertex_fitness
         best = cmlon.best_fitness
@@ -133,13 +139,12 @@ class LONVisualizer:
                 colors[v] = COLORS["global_basin"]
 
         # Color suboptimal sinks
-        for s in sinks:
-            if fits[s] != best:
-                colors[s] = COLORS["local_sink"]
+        for s in cmlon.get_local_sinks():
+            colors[s] = COLORS["local_sink"]
 
         # Color global optima (overrides basin color)
         for i, f in enumerate(fits):
-            if f == best:
+            if cmlon._allclose(f, best):
                 colors[i] = COLORS["global_optimum"]
 
         return colors

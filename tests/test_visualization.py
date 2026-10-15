@@ -4,10 +4,12 @@ from pathlib import Path
 import igraph as ig
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pytest
 from PIL import Image
 
-from lonkit import LON, LONVisualizer
+from lonkit import LON, LONConfig, LONVisualizer
+from lonkit.visualization import COLORS
 from tests.conftest import SEED
 
 
@@ -114,3 +116,37 @@ class TestPlot2DReproducibility:
 
         assert output_path.exists()
         assert output_path.stat().st_size > 0
+
+
+class TestColorsRespectTolerance:
+    """Colors classify global optima with `eq_atol`, consistently with the metrics."""
+
+    @staticmethod
+    def _two_sink_lon() -> LON:
+        trace = pd.DataFrame(
+            {
+                "run": [1, 2],
+                "fit1": [5.0, 5.0],
+                "node1": ["x", "y"],
+                "fit2": [0.0, 0.05],
+                "node2": ["a", "b"],
+            }
+        )
+        return LON.from_trace_data(trace, LONConfig(eq_atol=0.1))
+
+    def test_cmlon_sinks_within_tolerance_are_global(self, visualizer: LONVisualizer) -> None:
+        cmlon = self._two_sink_lon().to_cmlon()
+        sinks = cmlon.get_sinks()
+        colors = visualizer.compute_cmlon_colors(cmlon)
+
+        assert sorted(cmlon.get_global_sinks()) == sorted(sinks)
+        assert cmlon.get_local_sinks() == []
+        assert [colors[s] for s in sinks] == [COLORS["global_optimum"]] * len(sinks)
+        assert cmlon.compute_network_metrics()["n_global_funnels"] == len(sinks)
+
+    def test_lon_nodes_within_tolerance_are_global(self, visualizer: LONVisualizer) -> None:
+        lon = self._two_sink_lon()
+        colors = dict(zip(lon.vertex_names, visualizer.compute_lon_colors(lon)))
+
+        assert colors["a"] == colors["b"] == COLORS["lon_global"]
+        assert colors["x"] == colors["y"] == COLORS["lon_local"]
