@@ -5,7 +5,7 @@ description: lonkit - Python library for constructing, analyzing, and visualizin
 
 # lonkit
 
-**Local Optima Networks**
+**Local Optima Networks in Python**
 
 ![lonkit: Local Optima Networks visualization in Python](assets/icon.jpg){ width="100%" }
 
