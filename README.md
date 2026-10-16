@@ -16,12 +16,11 @@
 
 ## Features
 
-- **Basin-Hopping Sampling**: Efficient exploration of continuous fitness landscapes using configurable Basin-Hopping
-- **Iterated Local Search**: Discrete LON construction via ILS with built-in problems (Number Partitioning, NK Landscape, OneMax)
-- **LON Construction**: Automatic construction of Local Optima Networks from sampling data
-- **CMLON Support**: Compressed Monotonic LONs for cleaner landscape analysis
-- **Rich Metrics**: Compute landscape metrics including funnel analysis and neutrality
-- **Beautiful Visualizations**: 2D and 3D plots with support for animated GIFs
+- **LON Construction**: Local Optima Networks as `igraph` graphs generated from sampled data with support for Compressed Monotonic LONs (CMLONs) representation.
+- **Continuous landscape exploration**: Configurable Basin-Hopping algorithm for data sampling, with automatic step-size estimation and pararellization.
+- **Discrete landscape exploration**: Iterated Local Search sampler, with parallelization, built-in problems (OneMax, NK Landscape, Number Partitioning) and classes to define custom problem instances.
+- **Landscape metrics**: Funnel analysis, neutrality, global and sink strength, plus search performance (success rate, deviation from the known optimum).
+-  **Visualization**: Configurable 2D and 3D LON plots, and animated rotating GIFs.
 
 ## Installation
 
@@ -139,8 +138,7 @@ lon = sampler.sample_to_lon(result)
 ## Discrete Optimization Problems
 
 lonkit also supports Local Optima Networks for discrete optimization problems using Iterated Local Search (ILS).
-
-### Quick Start (Discrete)
+The library includes several built-in discrete problems for analysis: Number Partitioning, NK Landscape and OneMax.
 
 ```python
 from lonkit import NumberPartitioning, ILSSampler, ILSSamplerConfig, LONVisualizer
@@ -170,11 +168,9 @@ viz.plot_2d(cmlon, output_path="npp_cmlon.png")
   <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/readme/npp_cmlon_2d.png" alt="CMLON of a Number Partitioning instance with many global funnels and one local funnel" width="500">
 </p>
 
-Unlike Rastrigin, this Number Partitioning instance has many separate funnels: most of them end in a global optimum (red), and one ends in a worse local sink (blue).
-
 ### Custom Discrete Problems
 
-You can define your own discrete problem by subclassing `DiscreteProblem`. For bitstring problems, inherit from `BitstringProblem` instead; it provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box. You only need to implement `evaluate()`.
+You can define your own discrete problem by subclassing `DiscreteProblem`. You can also extend built-in problems - for bitstring problems, extend `BitstringProblem`, which it provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box, so you only need to implement `evaluate()`.
 
 ## Documentation
 
