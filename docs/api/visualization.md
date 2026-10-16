@@ -1,3 +1,7 @@
+---
+description: "API reference for LONVisualizer: 2D and 3D plots and animated GIFs of Local Optima Networks and CMLONs."
+---
+
 # Visualization Module
 
 ::: lonkit.visualization.LONVisualizer

@@ -1,3 +1,7 @@
+---
+description: "Build Local Optima Networks for discrete optimization problems with Iterated Local Search: Number Partitioning, NK Landscapes, OneMax, and custom bitstring problems."
+---
+
 # Discrete Problems
 
 lonkit supports Local Optima Networks for discrete optimization problems using

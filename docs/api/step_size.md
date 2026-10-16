@@ -1,3 +1,7 @@
+---
+description: "API reference for lonkit StepSizeEstimator, which tunes the Basin-Hopping perturbation step size for continuous Local Optima Network sampling."
+---
+
 # Step Size Module
 
 ::: lonkit.continuous.step_size.StepSizeEstimator

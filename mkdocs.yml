@@ -1,5 +1,5 @@
 site_name: lonkit
-site_description: Local Optima Networks for Continuous Optimization
+site_description: lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous and discrete optimization and fitness landscape analysis.
 site_author: HELIX AGH
 site_url: https://helix-agh.github.io/lonkit
 
@@ -85,19 +85,25 @@ nav:
       - Sampling: user-guide/sampling.md
       - Analysis: user-guide/analysis.md
       - Visualization: user-guide/visualization.md
+      - Discrete Problems: user-guide/discrete.md
       - Examples: user-guide/examples.md
   - API Reference:
       - Overview: api/index.md
       - LON: api/lon.md
       - Sampling: api/sampling.md
+      - Step Size: api/step_size.md
+      - Discrete: api/discrete.md
       - Visualization: api/visualization.md
   - Contributing: contributing.md
 
 extra:
+  # Google Search Console verification token (HTML tag method), e.g. "abc123...".
+  # Rendered as <meta name="google-site-verification"> when set.
+  google_site_verification: ""
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/helix-agh/lonkit
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/lonkit/
 
-copyright: Copyright &copy; 2025 AGH University of Kraków
+copyright: Copyright &copy; 2025-2026 AGH University of Kraków

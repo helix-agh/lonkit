@@ -1,15 +1,18 @@
 <div align="center">
-    <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/icon.jpg" alt="lonkit" width="800">
+    <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/icon.jpg" alt="lonkit: Local Optima Networks visualization in Python" width="800">
 </div>
 
+<h1 align="center">lonkit: Local Optima Networks in Python</h1>
 
 [![PyPI version](https://badge.fury.io/py/lonkit.svg)](https://pypi.org/project/lonkit/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Documentation](https://img.shields.io/badge/docs-helix--agh.github.io%2Flonkit-indigo.svg)](https://helix-agh.github.io/lonkit/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Ujl48ffgHg9ck1Hueh59s65OR3Q3BG99?usp=sharing)
 
-**Local Optima Networks**
+**lonkit** is a Python library for constructing, analyzing, and visualizing **Local Optima Networks (LONs)** for both continuous and discrete optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
 
-lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for both continuous and discrete optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
+**Documentation:** [helix-agh.github.io/lonkit](https://helix-agh.github.io/lonkit/)
 
 ## Features
 
@@ -175,7 +178,19 @@ You can define your own discrete problem by subclassing `DiscreteProblem`. For b
 
 ## Documentation
 
-For full documentation, visit: [https://helix-agh.github.io/lonkit](https://helix-agh.github.io/lonkit)
+The full documentation is at [helix-agh.github.io/lonkit](https://helix-agh.github.io/lonkit/):
+
+- [Installation](https://helix-agh.github.io/lonkit/getting-started/installation/)
+- [Quick Start](https://helix-agh.github.io/lonkit/getting-started/quickstart/)
+- [Core Concepts: LONs and fitness landscapes](https://helix-agh.github.io/lonkit/getting-started/concepts/)
+- [Discrete Problems](https://helix-agh.github.io/lonkit/user-guide/discrete/)
+- [API Reference](https://helix-agh.github.io/lonkit/api/)
+
+## References
+
+- G. Ochoa, M. Tomassini, S. Vérel, C. Darabos. *A Study of NK Landscapes' Basins and Local Optima Networks.* GECCO 2008.
+- G. Ochoa, N. Veerapen, F. Daolio, M. Tomassini. *Understanding Phase Transitions with Local Optima Networks: Number Partitioning as a Case Study.* EvoCOP 2017.
+- J. Adair, G. Ochoa, K. M. Malan. *Local Optima Networks for Continuous Fitness Landscapes.* GECCO 2019 Companion.
 
 ## Contributing
 

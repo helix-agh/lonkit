@@ -1,3 +1,7 @@
+---
+description: "How to contribute to lonkit, the Python library for Local Optima Networks: development setup, tests, code style, and documentation."
+---
+
 # Contributing
 
 Thank you for your interest in contributing to lonkit!
