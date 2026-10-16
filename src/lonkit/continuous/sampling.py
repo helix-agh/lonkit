@@ -52,7 +52,7 @@ class BasinHoppingSamplerConfig:
         Reproducibility is guaranteed across different ``n_jobs`` values when ``seed`` is set. Default: ``1``.
         preserve_runs_without_transitions: Keep runs with no accepted moves as
             self-loop trace rows. If False, omit them from the trace, LON, and
-            performance metrics, matching the earlier behavior. Default: True.
+            performance metrics. Default: True.
 
     A local search fails if ``minimize`` raises ``ValueError`` or returns a non-finite
     ``fun``. A failed initial search skips the run; a failed perturbation is rejected
