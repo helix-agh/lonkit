@@ -233,12 +233,13 @@ config = ILSSamplerConfig(
 | `max_iter` | None | Hard limit on total iterations per run. Set to `None` for no limit (must set `n_iter_no_change`) |
 | `accept_equal` | True | If `True`, accept moves to equal-fitness optima (greedy with equal acceptance). If `False`, only strictly improving moves |
 | `seed` | None | Random seed controlling all search randomness |
-| `n_jobs` | 1 | Concurrent jobs using joblib semantics; `1` runs sequentially, `-1` uses all CPUs |
+| `n_jobs` | 1 | Maximum number of runs executed in parallel; `1` runs sequentially, `-1` uses all CPUs. See [Parallel Execution](sampling.md#parallel-execution) |
 
 At least one of `n_iter_no_change` or `max_iter` must be set.
 
-See [parallel ILS sampling](sampling.md#discrete-sampling-with-ils) for an example,
-reproducibility guarantees, and progress callback semantics.
+See [parallel ILS sampling](sampling.md#discrete-sampling-with-ils) for an example and
+[Parallel Execution](sampling.md#parallel-execution) for `n_jobs` values, reproducibility
+guarantees, and progress callback semantics.
 
 ### Comparison with BasinHoppingSamplerConfig
 
