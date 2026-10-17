@@ -21,7 +21,7 @@ Gent, I. P., & Walsh, T. (1998). Analysis of heuristics for number partitioning.
 Outputs one figure: ``NPP_phase_transition_sweep.png``
 """
 
-import os
+import importlib.util
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -33,6 +33,16 @@ from npp_paths import IMAGES_DIR
 from scipy.ndimage import uniform_filter1d
 
 from lonkit import ILSSampler, ILSSamplerConfig, LONConfig, NumberPartitioning
+
+# examples/ is not a package; load shared helpers by path.
+_spec = importlib.util.spec_from_file_location(
+    "example_utils", Path(__file__).resolve().parents[1] / "example_utils.py"
+)
+assert _spec is not None and _spec.loader is not None
+_example_utils = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_example_utils)
+max_workers_from_env = _example_utils.max_workers_from_env
+
 
 SMOOTH_WIDTH = 3  # uniform moving-average window (points); odd integer
 
@@ -226,8 +236,7 @@ RANDOM_SEED = 42
 EQ_ATOL = 1e-8
 
 K_VALUES = np.linspace(0.1, 1.0, 50)
-# Cap on worker processes, so the sweep behaves on shared machines.
-N_JOBS = int(os.environ.get("LONKIT_N_JOBS", "8"))
+N_JOBS = max_workers_from_env()
 
 
 def sweep_one(k: float) -> dict:
@@ -261,10 +270,8 @@ def sweep_one(k: float) -> dict:
 def main():
     Path(IMAGES_DIR).mkdir(parents=True, exist_ok=True)
 
-    print(
-        f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS}, "
-        f"{N_JOBS} worker processes)\n"
-    )
+    workers = f"{N_JOBS} worker processes" if N_JOBS is not None else "default workers"
+    print(f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS}, " f"{workers})\n")
 
     with ProcessPoolExecutor(max_workers=N_JOBS) as executor:
         records = list(executor.map(sweep_one, K_VALUES))

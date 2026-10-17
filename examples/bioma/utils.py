@@ -1,20 +1,31 @@
 from __future__ import annotations
 
+import importlib.util
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
+from lonkit import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
+from lonkit.visualization import COLORS
+
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     import numpy as np
 
-from lonkit import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
-from lonkit.visualization import COLORS
+# examples/ is not a package; load shared helpers by path.
+_spec = importlib.util.spec_from_file_location(
+    "example_utils", Path(__file__).resolve().parents[1] / "example_utils.py"
+)
+assert _spec is not None and _spec.loader is not None
+_example_utils = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_example_utils)
+max_workers_from_env = _example_utils.max_workers_from_env
+
 
 DEFAULT_N_RUNS = 100
 DEFAULT_FITNESS_PRECISION = 2
@@ -95,7 +106,7 @@ def build_all(
     ]
 
     results: dict[tuple[str, int], tuple[CMLON, dict]] = {}
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=max_workers_from_env()) as executor:
         futures = [executor.submit(_build_one, *t) for t in tasks]
         for future in futures:
             func_name, n_var, cmlon, metrics = future.result()
