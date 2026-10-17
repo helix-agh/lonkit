@@ -1,3 +1,7 @@
+---
+description: "API reference for lonkit discrete optimization: DiscreteProblem, BitstringProblem, NumberPartitioning, NKLandscape, OneMax, and the Iterated Local Search (ILS) sampler."
+---
+
 # Discrete Module
 
 ## Problems

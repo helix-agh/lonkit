@@ -39,7 +39,7 @@ class ILSSamplerConfig:
             a context. 0 is invalid. Processes are preferred. Default: 1.
         preserve_runs_without_transitions: Keep runs with no accepted moves as
             self-loop trace rows. If False, omit them from the trace, LON, and
-            performance metrics, matching the earlier behavior. Default: True.
+            performance metrics. Default: True.
     """
 
     n_runs: int = 100

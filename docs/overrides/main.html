@@ -1,23 +1,52 @@
 {% extends "base.html" %} {% block extrahead %}
 {{ super() }}
+{% if config.extra.google_site_verification %}
+<meta name="google-site-verification" content="{{ config.extra.google_site_verification }}" />
+{% endif %}
+{% if page.meta and page.meta.title %}
+  {% set seo_title = page.meta.title ~ " - " ~ config.site_name %}
+{% elif page.title and not page.is_homepage %}
+  {% set seo_title = page.title | striptags ~ " - " ~ config.site_name %}
+{% else %}
+  {% set seo_title = config.site_name %}
+{% endif %}
+{% set seo_description = (page.meta.description if page.meta and page.meta.description else config.site_description) %}
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="{{ config.site_name }}" />
+<meta property="og:title" content="{{ seo_title }}" />
+<meta property="og:description" content="{{ seo_description }}" />
+<meta property="og:url" content="{{ page.canonical_url }}" />
+<meta property="og:image" content="https://helix-agh.github.io/lonkit/assets/icon.jpg" />
+<meta property="og:image:alt" content="lonkit: Local Optima Networks visualization in Python" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ seo_title }}" />
+<meta name="twitter:description" content="{{ seo_description }}" />
+<meta name="twitter:image" content="https://helix-agh.github.io/lonkit/assets/icon.jpg" />
 <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "lonkit",
-    "description": "Local Optima Networks (LONs) for continuous optimization - Python library for constructing, analyzing, and visualizing fitness landscapes.",
-    "url": "https://helix-agh.github.io/lonkit",
+    "alternateName": "lonkit: Local Optima Networks in Python",
+    "description": "Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for continuous and discrete optimization and fitness landscape analysis.",
+    "url": "https://helix-agh.github.io/lonkit/",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Python 3.10+",
     "programmingLanguage": "Python",
     "license": "https://opensource.org/licenses/MIT",
+    "isAccessibleForFree": true,
     "author": {
       "@type": "Organization",
       "name": "HELIX AGH",
-      "url": "https://github.com/helix-agh"
+      "url": "https://helix-agh.github.io/"
     },
     "downloadUrl": "https://pypi.org/project/lonkit/",
-    "keywords": "optimization, fitness landscape, local optima networks, basin hopping, evolutionary algorithms, visualization, multi-dimensional"
+    "installUrl": "https://pypi.org/project/lonkit/",
+    "sameAs": [
+      "https://github.com/helix-agh/lonkit",
+      "https://pypi.org/project/lonkit/"
+    ],
+    "keywords": "local optima networks, LON, CMLON, fitness landscape analysis, basin hopping, iterated local search, continuous optimization, discrete optimization, metaheuristics, evolutionary computation, Python"
   }
 </script>
 {% endblock %}

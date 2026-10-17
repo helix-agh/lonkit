@@ -1,24 +1,26 @@
 <div align="center">
-    <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/icon.jpg" alt="lonkit" width="800">
+    <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/icon.jpg" alt="lonkit: Local Optima Networks visualization in Python" width="800">
 </div>
 
+<h1 align="center">lonkit: Local Optima Networks in Python</h1>
 
 [![PyPI version](https://badge.fury.io/py/lonkit.svg)](https://pypi.org/project/lonkit/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Documentation](https://img.shields.io/badge/docs-helix--agh.github.io%2Flonkit-indigo.svg)](https://helix-agh.github.io/lonkit/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Ujl48ffgHg9ck1Hueh59s65OR3Q3BG99?usp=sharing)
 
-**Local Optima Networks**
+**lonkit** is a Python library for constructing, analyzing, and visualizing **Local Optima Networks (LONs)** for both continuous and discrete optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
 
-lonkit is a Python library for constructing, analyzing, and visualizing Local Optima Networks (LONs) for both continuous and discrete optimization problems. LONs provide a powerful way to understand the structure of fitness landscapes, revealing how local optima are connected and how difficult it may be to find global optima.
+**Documentation:** [helix-agh.github.io/lonkit](https://helix-agh.github.io/lonkit/)
 
 ## Features
 
-- **Basin-Hopping Sampling**: Efficient exploration of continuous fitness landscapes using configurable Basin-Hopping
-- **Iterated Local Search**: Discrete LON construction via ILS with built-in problems (Number Partitioning, NK Landscape, OneMax)
-- **LON Construction**: Automatic construction of Local Optima Networks from sampling data
-- **CMLON Support**: Compressed Monotonic LONs for cleaner landscape analysis
-- **Rich Metrics**: Compute landscape metrics including funnel analysis and neutrality
-- **Beautiful Visualizations**: 2D and 3D plots with support for animated GIFs
+- **LON Construction**: Local Optima Networks as `igraph` graphs generated from sampled data, including Compressed Monotonic LONs (CMLONs).
+- **Continuous landscape exploration**: Configurable Basin-Hopping algorithm for data sampling, with automatic step-size estimation and parallelization.
+- **Discrete landscape exploration**: Iterated Local Search sampler, with parallelization, built-in problems (OneMax, NK Landscape, Number Partitioning) and classes to define custom problem instances.
+- **Landscape metrics**: Funnel analysis, neutrality, global and sink strength, plus search performance (success rate, deviation from the known optimum).
+- **Visualization**: Configurable 2D and 3D LON plots, and animated rotating GIFs.
 
 ## Installation
 
@@ -136,8 +138,7 @@ lon = sampler.sample_to_lon(result)
 ## Discrete Optimization Problems
 
 lonkit also supports Local Optima Networks for discrete optimization problems using Iterated Local Search (ILS).
-
-### Quick Start (Discrete)
+The library includes several built-in discrete problems for analysis: Number Partitioning, NK Landscape and OneMax.
 
 ```python
 from lonkit import NumberPartitioning, ILSSampler, ILSSamplerConfig, LONVisualizer
@@ -167,15 +168,25 @@ viz.plot_2d(cmlon, output_path="npp_cmlon.png")
   <img src="https://raw.githubusercontent.com/helix-agh/lonkit/main/docs/assets/readme/npp_cmlon_2d.png" alt="CMLON of a Number Partitioning instance with many global funnels and one local funnel" width="500">
 </p>
 
-Unlike Rastrigin, this Number Partitioning instance has many separate funnels: most of them end in a global optimum (red), and one ends in a worse local sink (blue).
-
 ### Custom Discrete Problems
 
-You can define your own discrete problem by subclassing `DiscreteProblem`. For bitstring problems, inherit from `BitstringProblem` instead; it provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box. You only need to implement `evaluate()`.
+You can define your own discrete problem by subclassing `DiscreteProblem`. You can also extend built-in problems - for bitstring problems, extend `BitstringProblem`, which provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box, so you only need to implement `evaluate()`.
 
 ## Documentation
 
-For full documentation, visit: [https://helix-agh.github.io/lonkit](https://helix-agh.github.io/lonkit)
+The full documentation is at [helix-agh.github.io/lonkit](https://helix-agh.github.io/lonkit/):
+
+- [Installation](https://helix-agh.github.io/lonkit/getting-started/installation/)
+- [Quick Start](https://helix-agh.github.io/lonkit/getting-started/quickstart/)
+- [Core Concepts: LONs and fitness landscapes](https://helix-agh.github.io/lonkit/getting-started/concepts/)
+- [Discrete Problems](https://helix-agh.github.io/lonkit/user-guide/discrete/)
+- [API Reference](https://helix-agh.github.io/lonkit/api/)
+
+## References
+
+- G. Ochoa, M. Tomassini, S. Vérel, C. Darabos. *A Study of NK Landscapes' Basins and Local Optima Networks.* GECCO 2008.
+- G. Ochoa, N. Veerapen, F. Daolio, M. Tomassini. *Understanding Phase Transitions with Local Optima Networks: Number Partitioning as a Case Study.* EvoCOP 2017.
+- J. Adair, G. Ochoa, K. M. Malan. *Local Optima Networks for Continuous Fitness Landscapes.* GECCO 2019 Companion.
 
 ## Contributing
 

@@ -57,17 +57,7 @@ lon = sampler.sample_to_lon(result)
 | `n_iter_no_change` | 250     | Max consecutive non-improving perturbations before stopping each run. At least one of `n_iter_no_change` or `max_iter` must be set.                                                                     |
 | `max_iter`         | None    | Max total perturbation steps per run. Use together with `n_iter_no_change` or alone.                                                                                                                    |
 | `seed`             | None    | Random seed for reproducibility                                                                                                                                                                         |
-| `n_jobs`           | 1       | Number of parallel jobs. For interpretation, refer to the [joblib documentation](https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html#:~:text=Parameters%3A,int%2C%20default%3DNone). |
-
-**Parallelism and reproducibility:**
-
-- The behaviour of `n_jobs` parameter is in line with the one in [joblib documentation](https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html#:~:text=Parameters%3A,int%2C%20default%3DNone), that is:
-    - `1` runs sequentially,
-    - `-1` uses all available CPUs,
-    - `N > 1` uses maximum of `N` processes,
-    - `-N` uses maximum of `max(1, cpu_count - N + 1)`    processes,
-    - `None` is treated as `1`.
-- Setting `seed` guarantees **identical results** regardless of `n_jobs` value — each run receives a deterministic RNG seed derived from `SeedSequence(seed)`
+| `n_jobs`           | 1       | Maximum number of runs executed in parallel; `1` runs sequentially, `-1` uses all CPUs. See [Parallel Execution](#parallel-execution).                                                                  |
 
 **Choosing `n_runs` and stopping criteria:**
 
@@ -187,7 +177,8 @@ perturbations), the starting point, and the reason for failure.
 
 ## Discrete Sampling with ILS
 
-Independent ILS runs can use multiple processes via `n_jobs`:
+Independent ILS runs can use multiple processes via `n_jobs`, with the same
+semantics as `BasinHoppingSampler` (see [Parallel Execution](#parallel-execution)):
 
 ```python
 from lonkit import ILSSampler, ILSSamplerConfig, NumberPartitioning
@@ -198,28 +189,55 @@ result = sampler.sample(problem)
 lon = sampler.sample_to_lon(result)
 ```
 
-`n_jobs` follows joblib semantics, as in `BasinHoppingSampler`: `1` (the default)
-runs sequentially, `-1` uses all available CPUs, and `-2` leaves one CPU unused.
-`None` uses the joblib context setting, or `1` without a context; `0` is invalid.
-When the effective number of jobs is one, ILS runs directly without workers.
-Parallel execution prefers processes. Custom problems must be serializable by
-joblib and must not hold mutable search state. All runs use the supplied problem's
-data; workers do not regenerate instances. For short runs, process startup and
-serialization overhead can outweigh parallelism's benefit. Worker errors propagate
-to the caller.
+When running in parallel, custom problems must be serializable by joblib and must
+not hold mutable search state. All runs use the supplied problem's data; workers
+do not regenerate instances. Custom problems must also use the supplied RNG for
+all search randomness, otherwise results are not reproducible.
 
-Each run gets its own RNG from `SeedSequence(seed).spawn(n_runs)` in both modes.
-With a fixed seed and the same problem data, `raw_records` and `trace_df` are
-identical across `n_jobs` values, including run and record order. **Seeded ILS
-results change compared with earlier versions**, which shared one RNG across
-all runs. Custom problems must use the supplied RNG for all search randomness.
+**Seeded ILS results change compared with earlier versions**, which shared one
+RNG across all runs. Progress callbacks are now called after each run completes
+rather than before it starts. The `ILSResult` format and `sample_to_lon()` usage
+remain unchanged.
 
-`sample(problem, progress_callback=callback)` calls
-`callback(completed_runs, total_runs)` in the main process once after receiving
-each completed run, with counts from `1` through `n_runs`. Results are received
-in run order, so an earlier slow run can delay notifications for later runs.
-This also changes sequential callbacks from before a run to after its completion.
-The `ILSResult` format and `sample_to_lon()` usage remain unchanged.
+## Parallel Execution
+
+Both samplers run their `n_runs` independent runs in parallel according to the
+`n_jobs` config parameter, which follows
+[joblib semantics](https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html):
+
+| `n_jobs`      | Behaviour                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `1` (default) | Runs execute sequentially in the main process, without workers                             |
+| `N > 1`       | Up to `N` worker processes                                                                 |
+| `-1`          | One worker process per CPU                                                                 |
+| `-N`          | Up to `max(1, cpu_count - N + 1)` worker processes, e.g. `-2` leaves one CPU free          |
+| `None`        | Value from an enclosing `joblib.parallel_config(n_jobs=...)` context, otherwise `1`        |
+| `0`           | Invalid, raises `ValueError`                                                               |
+
+Whenever the effective number of jobs is `1`, runs execute directly in the main
+process. Otherwise joblib worker processes are used, so the objective function
+(or discrete problem) must be serializable by joblib. For short runs, process
+startup and serialization overhead can outweigh the benefit of parallelism.
+Worker errors propagate to the caller. `BasinHoppingSampler` also re-emits
+warnings raised in workers (such as [failed local searches](#failed-local-searches))
+in the main process.
+
+#### Reproducibility
+
+Each run gets its own RNG from
+`SeedSequence(seed).spawn(n_runs)`, whatever the value of `n_jobs`. With a fixed
+`seed`, the resulting `trace_df` and LON are identical across `n_jobs` values.
+
+#### Ordering and progress callbacks
+
+`progress_callback(completed_runs, total_runs)`
+is always called in the main process, once per completed run, with counts from `1`
+through `n_runs`. The two samplers differ in how parallel results are collected:
+
+| Sampler               | Results collected     | `raw_records` order across `n_jobs` | Callback timing                                     |
+| --------------------- | --------------------- | ----------------------------------- | --------------------------------------------------- |
+| `BasinHoppingSampler` | As runs finish        | May differ (`trace_df` is sorted)   | As soon as any run finishes                         |
+| `ILSSampler`          | In run order          | Identical                           | In run order; a slow early run delays later updates |
 
 ## LON Construction Configuration
 

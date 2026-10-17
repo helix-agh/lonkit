@@ -1,3 +1,7 @@
+---
+description: "API reference for lonkit continuous sampling: compute_lon, BasinHoppingSampler, and BasinHoppingSamplerConfig for building Local Optima Networks of continuous functions."
+---
+
 # Continuous Sampling Module
 
 ::: lonkit.continuous.sampling.compute_lon

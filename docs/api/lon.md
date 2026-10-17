@@ -1,3 +1,7 @@
+---
+description: "API reference for the lonkit LON and CMLON classes: building Local Optima Networks from trace data, computing landscape metrics, and compressing to CMLONs."
+---
+
 # LON Module
 
 ::: lonkit.lon.LON
