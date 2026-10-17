@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import sys
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
@@ -9,9 +11,15 @@ from matplotlib.lines import Line2D
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     import numpy as np
+
+# make shared example_utils importable from subdirs
+_EXAMPLES_DIR = Path(__file__).resolve().parents[1]
+if str(_EXAMPLES_DIR) not in sys.path:
+    sys.path.insert(0, str(_EXAMPLES_DIR))
+
+from example_utils import max_workers_from_env  # noqa: E402
 
 from lonkit import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
 from lonkit.visualization import COLORS
@@ -95,7 +103,7 @@ def build_all(
     ]
 
     results: dict[tuple[str, int], tuple[CMLON, dict]] = {}
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=max_workers_from_env()) as executor:
         futures = [executor.submit(_build_one, *t) for t in tasks]
         for future in futures:
             func_name, n_var, cmlon, metrics = future.result()

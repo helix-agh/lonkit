@@ -21,7 +21,7 @@ Gent, I. P., & Walsh, T. (1998). Analysis of heuristics for number partitioning.
 Outputs one figure: ``NPP_phase_transition_sweep.png``
 """
 
-import os
+import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -31,6 +31,13 @@ import numpy as np
 from matplotlib.lines import Line2D
 from npp_paths import IMAGES_DIR
 from scipy.ndimage import uniform_filter1d
+
+# make shared example_utils importable from subdirs
+_EXAMPLES_DIR = Path(__file__).resolve().parents[1]
+if str(_EXAMPLES_DIR) not in sys.path:
+    sys.path.insert(0, str(_EXAMPLES_DIR))
+
+from example_utils import max_workers_from_env  # noqa: E402
 
 from lonkit import ILSSampler, ILSSamplerConfig, LONConfig, NumberPartitioning
 
@@ -226,8 +233,7 @@ RANDOM_SEED = 42
 EQ_ATOL = 1e-8
 
 K_VALUES = np.linspace(0.1, 1.0, 50)
-# Cap on worker processes, so the sweep behaves on shared machines.
-N_JOBS = int(os.environ.get("LONKIT_N_JOBS", "8"))
+N_JOBS = max_workers_from_env()
 
 
 def sweep_one(k: float) -> dict:
@@ -261,9 +267,10 @@ def sweep_one(k: float) -> dict:
 def main():
     Path(IMAGES_DIR).mkdir(parents=True, exist_ok=True)
 
+    workers = f"{N_JOBS} worker processes" if N_JOBS is not None else "default workers"
     print(
         f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS}, "
-        f"{N_JOBS} worker processes)\n"
+        f"{workers})\n"
     )
 
     with ProcessPoolExecutor(max_workers=N_JOBS) as executor:

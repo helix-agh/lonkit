@@ -3,7 +3,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from problems import ackley4, griewank, schwefel2_26
-from utils import IMAGES_DIR, FunctionConfig, build_cmlon
+from utils import IMAGES_DIR, FunctionConfig, build_cmlon, max_workers_from_env
 
 from lonkit import LONVisualizer
 
@@ -108,7 +108,7 @@ def main() -> None:
     Path(IMAGES_DIR).mkdir(parents=True, exist_ok=True)
     func_names = list(FUNCTIONS.keys())
 
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=max_workers_from_env()) as executor:
         futures = {
             func_name: executor.submit(build_cmlon, FUNCTIONS[func_name], N_VAR)
             for func_name in func_names
