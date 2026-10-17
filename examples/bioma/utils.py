@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import sys
+import importlib.util
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -9,20 +9,23 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
+from lonkit import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
+from lonkit.visualization import COLORS
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     import numpy as np
 
-# make shared example_utils importable from subdirs
-_EXAMPLES_DIR = Path(__file__).resolve().parents[1]
-if str(_EXAMPLES_DIR) not in sys.path:
-    sys.path.insert(0, str(_EXAMPLES_DIR))
+# examples/ is not a package; load shared helpers by path.
+_spec = importlib.util.spec_from_file_location(
+    "example_utils", Path(__file__).resolve().parents[1] / "example_utils.py"
+)
+assert _spec is not None and _spec.loader is not None
+_example_utils = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_example_utils)
+max_workers_from_env = _example_utils.max_workers_from_env
 
-from example_utils import max_workers_from_env  # noqa: E402
-
-from lonkit import CMLON, BasinHoppingSampler, BasinHoppingSamplerConfig, LONVisualizer
-from lonkit.visualization import COLORS
 
 DEFAULT_N_RUNS = 100
 DEFAULT_FITNESS_PRECISION = 2
