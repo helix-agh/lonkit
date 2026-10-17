@@ -16,11 +16,11 @@
 
 ## Features
 
-- **LON Construction**: Local Optima Networks as `igraph` graphs generated from sampled data with support for Compressed Monotonic LONs (CMLONs) representation.
-- **Continuous landscape exploration**: Configurable Basin-Hopping algorithm for data sampling, with automatic step-size estimation and pararellization.
+- **LON Construction**: Local Optima Networks as `igraph` graphs generated from sampled data, including Compressed Monotonic LONs (CMLONs).
+- **Continuous landscape exploration**: Configurable Basin-Hopping algorithm for data sampling, with automatic step-size estimation and parallelization.
 - **Discrete landscape exploration**: Iterated Local Search sampler, with parallelization, built-in problems (OneMax, NK Landscape, Number Partitioning) and classes to define custom problem instances.
 - **Landscape metrics**: Funnel analysis, neutrality, global and sink strength, plus search performance (success rate, deviation from the known optimum).
--  **Visualization**: Configurable 2D and 3D LON plots, and animated rotating GIFs.
+- **Visualization**: Configurable 2D and 3D LON plots, and animated rotating GIFs.
 
 ## Installation
 
@@ -170,7 +170,7 @@ viz.plot_2d(cmlon, output_path="npp_cmlon.png")
 
 ### Custom Discrete Problems
 
-You can define your own discrete problem by subclassing `DiscreteProblem`. You can also extend built-in problems - for bitstring problems, extend `BitstringProblem`, which it provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box, so you only need to implement `evaluate()`.
+You can define your own discrete problem by subclassing `DiscreteProblem`. You can also extend built-in problems - for bitstring problems, extend `BitstringProblem`, which provides `random_solution()`, `local_search()`, `perturb()`, and `solution_id()` out of the box, so you only need to implement `evaluate()`.
 
 ## Documentation
 
