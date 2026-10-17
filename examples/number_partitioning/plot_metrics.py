@@ -271,10 +271,7 @@ def main():
     Path(IMAGES_DIR).mkdir(parents=True, exist_ok=True)
 
     workers = f"{N_JOBS} worker processes" if N_JOBS is not None else "default workers"
-    print(
-        f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS}, "
-        f"{workers})\n"
-    )
+    print(f"Sweeping k across {len(K_VALUES)} values  (n={N}, n_runs={N_RUNS}, " f"{workers})\n")
 
     with ProcessPoolExecutor(max_workers=N_JOBS) as executor:
         records = list(executor.map(sweep_one, K_VALUES))
