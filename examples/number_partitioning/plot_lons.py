@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from npp_paths import IMAGES_DIR
 from PIL import Image, ImageOps
 
@@ -12,6 +13,7 @@ from lonkit import (
     LONVisualizer,
     NumberPartitioning,
 )
+from lonkit.visualization import CMLON_LEGEND, COLORS
 
 N = 20
 INSTANCE_SEED = 1
@@ -22,7 +24,6 @@ RANDOM_SEED = 42
 K_VALUES = [0.3, 0.7, 0.95]
 
 TITLE_FONTSIZE = 20
-SUPTITLE_FONTSIZE = 26
 AXIS_TITLE_FONTSIZE_3D = 26  # px
 TICK_FONTSIZE_3D = 18
 
@@ -104,8 +105,30 @@ def render_merged_lon_grid(k_values: list[float], output_dir: Path = Path(IMAGES
         ax_bottom.set_title(f"3D CMLON (k={k})", fontsize=TITLE_FONTSIZE)
         ax_bottom.axis("off")
 
-    fig.suptitle("Number Partitioning CMLON Views", fontsize=SUPTITLE_FONTSIZE, y=0.99)
-    fig.tight_layout(rect=(0, 0, 1, 0.95), h_pad=2.5, w_pad=1.0)
+    handles = [
+        Line2D(
+            [],
+            [],
+            linestyle="none",
+            marker="o",
+            markersize=0.8 * TITLE_FONTSIZE,
+            markerfacecolor=COLORS[key],
+            markeredgecolor="black",
+            markeredgewidth=0.5,
+            label=text,
+        )
+        for key, text in CMLON_LEGEND
+    ]
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=len(handles),
+        frameon=False,
+        fontsize=TITLE_FONTSIZE,
+        handletextpad=0.3,
+        columnspacing=1.5,
+    )
+    fig.tight_layout(rect=(0, 0.04, 1, 1), h_pad=2.5, w_pad=1.0)
     fig.savefig(output_dir / "NPP_merged_cmlon_views.png", dpi=200)
     plt.close(fig)
 
@@ -128,7 +151,10 @@ def main():
         cmlon_by_k[k] = cmlon
 
         vis = LONVisualizer(0.5, 1, arrow_size=0.1)
-        vis.plot_2d(cmlon, f"{IMAGES_DIR}/NPP_{k}_2d.png", dpi=250, seed=RANDOM_SEED)
+        fig = vis.plot_2d(cmlon, dpi=250, seed=RANDOM_SEED)
+        fig.axes[0].get_legend().remove()
+        fig.savefig(f"{IMAGES_DIR}/NPP_{k}_2d.png", dpi=250, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
 
     render_3d_lons(cmlon_by_k)
     render_merged_lon_grid(K_VALUES)
